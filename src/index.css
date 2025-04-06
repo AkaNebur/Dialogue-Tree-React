@@ -1,61 +1,143 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* No custom Tailwind usage here, just base styles */
-
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* App Container */
+.app-container {
+  width: 100vw;
+  height: 100vh;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* Header Overlay */
+.header-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1rem;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-body {
-  margin: 0;
+.header-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.header-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Buttons container */
+.buttons-container {
   display: flex;
-  min-width: 320px;
-  min-height: 100vh;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+/* Button styles */
+.layout-toggle-btn,
+.auto-layout-btn {
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: #1f2937;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.layout-toggle-btn:hover,
+.auto-layout-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.layout-toggle-btn:focus,
+.auto-layout-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.auto-layout-btn {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.auto-layout-btn:hover {
+  background-color: #bfdbfe;
+  border-color: #60a5fa;
+}
+
+/* React Flow Container */
+.react-flow-container {
+  background-color: #f9fafb;
+}
+
+/* Node Styles */
+.react-flow__node {
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Common node styles */
+.node-start, .node-hello, .node-products, .node-great, .node-more, .node-later {
+  padding: 1rem;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* Specific node styles */
+.node-start {
+  background-color: white;
+  border-color: #d1d5db;
+}
+
+.node-hello {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.node-products {
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.node-great {
+  background-color: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.node-more {
+  background-color: #f3e8ff;
+  border-color: #c4b5fd;
+}
+
+.node-later {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+/* Preserve original React Flow specific styling */
+.react-flow__node-custom {
+  padding: 10px;
+  border-radius: 5px;
+  width: 150px;
+  font-size: 12px;
+  color: #222;
+  text-align: center;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* Ensure we have proper sizing */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
 }
