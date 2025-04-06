@@ -1,0 +1,99 @@
+/* App Container */
+.app-container {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Header Overlay */
+.header-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1rem;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.header-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* React Flow Container */
+.react-flow-container {
+  background-color: #f9fafb;
+}
+
+/* Node Styles */
+.react-flow__node {
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Common node styles */
+.node-start, .node-hello, .node-products, .node-great, .node-more, .node-later {
+  padding: 1rem;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* Specific node styles */
+.node-start {
+  background-color: white;
+  border-color: #d1d5db;
+}
+
+.node-hello {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.node-products {
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.node-great {
+  background-color: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.node-more {
+  background-color: #f3e8ff;
+  border-color: #c4b5fd;
+}
+
+.node-later {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+/* Preserve original React Flow specific styling */
+.react-flow__node-custom {
+  padding: 10px;
+  border-radius: 5px;
+  width: 150px;
+  font-size: 12px;
+  color: #222;
+  text-align: center;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* Ensure we have proper sizing */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
