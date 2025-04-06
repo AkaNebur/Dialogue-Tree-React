@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  /* Node Styles */
+  .node-start {
+    @apply bg-white border-gray-300;
+  }
+
+  .node-hello {
+    @apply bg-blue-100 border-blue-300;
+  }
+
+  .node-products {
+    @apply bg-green-100 border-green-300;
+  }
+
+  .node-great {
+    @apply bg-yellow-100 border-yellow-300;
+  }
+
+  .node-more {
+    @apply bg-purple-100 border-purple-300;
+  }
+
+  .node-later {
+    @apply bg-red-100 border-red-300;
+  }
+
+  /* Common node styles */
+  .dialogue-node {
+    @apply p-4 border border-solid rounded-md shadow-md;
+  }
+
+  /* App container */
+  .app-container {
+    @apply w-screen h-screen relative;
+  }
+
+  /* Ensure proper sizing for React Flow */
+  .reactflow-wrapper {
+    @apply w-full h-full;
+  }
+}
+
+/* Ensure we have proper sizing */
+html, body, #root {
+  @apply w-full h-full m-0 p-0 box-border font-sans;
+}
