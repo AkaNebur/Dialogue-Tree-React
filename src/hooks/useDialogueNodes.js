@@ -1,16 +1,29 @@
-// hooks/useDialogueNodes.js
+// src/hooks/useDialogueNodes.js
 import { useCallback } from 'react';
-import { useNodesState, useEdgesState, addEdge, Position } from 'reactflow'; // Added Position
+import {
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Position, // Added Position
+  applyNodeChanges, // Needed if you use the returned onNodesChange directly
+  applyEdgeChanges, // Needed if you use the returned onEdgesChange directly
+} from 'reactflow';
+// Import the original initial data - this hook doesn't know about NPCs/multiple conversations
 import { initialNodes, initialEdges } from '../constants/initialData';
 
-// Track the node ID counter - Make it exportable
+// Track the node ID counter locally within this hook's scope (as it was before)
+// Note: This is separate from the ID generator now in initialData.js
 let nodeId = 100; // Start from a higher number to avoid conflicts with initial nodes
 export const getNextNodeId = () => `${nodeId++}`; // Export the helper function
 
 /**
- * Custom hook to manage dialogue nodes and edges state and basic interactions.
- * The logic for adding nodes on edge drop is now handled within the
- * component where useReactFlow() is available (DialogueFlow.jsx).
+ * Custom hook to manage a *single* set of dialogue nodes and edges state
+ * and basic interactions.
+ *
+ * WARNING: This hook does NOT support multiple NPCs or conversations.
+ * Use `useDialogueManager` for the application structure with the sidebar.
+ * The logic for adding nodes on edge drop needs useReactFlow() and is
+ * typically handled in the component (like DialogueFlow.jsx).
  *
  * @returns {Object} An object containing:
  *  - nodes: The current nodes array.
@@ -24,20 +37,33 @@ export const getNextNodeId = () => `${nodeId++}`; // Export the helper function
  *  - updateNodeLayout: Function to update handle positions based on layout direction.
  */
 const useDialogueNodes = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  // Use react-flow hooks to manage state for the initial nodes/edges
+  const [nodes, setNodes, onNodesChangeDirect] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChangeDirect] = useEdgesState(initialEdges);
+
+  // React Flow's built-in handlers for node/edge changes
+  // These are often passed directly to ReactFlow component
+  const onNodesChange = useCallback(
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    [setNodes]
+  );
+
+  const onEdgesChange = useCallback(
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [setEdges]
+  );
+
 
   /**
    * Handler for connecting nodes (when connection is valid and dropped on a target handle)
    */
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
+    (params) => {
+      console.log('[useDialogueNodes] onConnect:', params);
+      setEdges((eds) => addEdge(params, eds));
+    },
     [setEdges],
   );
-
-  // --- createOnConnectEnd factory function has been removed ---
-  // The actual onConnectEnd logic now resides in DialogueFlow.jsx
-  // where it has access to the reactFlowInstance via useReactFlow()
 
   /**
    * Updates node positions based on a map of IDs to new positions.
@@ -46,6 +72,7 @@ const useDialogueNodes = () => {
    */
   const updateNodePositions = useCallback(
     (positions) => {
+      console.log('[useDialogueNodes] Updating positions:', positions);
       setNodes((nds) =>
         nds.map((node) => {
           // Only update if a new position is provided for this node
@@ -69,6 +96,7 @@ const useDialogueNodes = () => {
    */
   const updateNodeLayout = useCallback(
     (isHorizontal) => {
+      console.log('[useDialogueNodes] Updating layout direction, isHorizontal:', isHorizontal);
       setNodes((nds) =>
         nds.map((node) => ({
           ...node,
@@ -87,10 +115,9 @@ const useDialogueNodes = () => {
     edges,
     setNodes, // Expose setNodes for external updates (like adding nodes)
     setEdges, // Expose setEdges for external updates (like adding edges)
-    onNodesChange,
-    onEdgesChange,
+    onNodesChange, // Use the wrapped handler
+    onEdgesChange, // Use the wrapped handler
     onConnect,
-    // onConnectEnd handler is now managed in the component using useReactFlow
     updateNodePositions,
     updateNodeLayout,
   };

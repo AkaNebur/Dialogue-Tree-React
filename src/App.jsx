@@ -1,15 +1,16 @@
-// App.jsx
-
+// src/App.jsx
 import React, { useCallback, useRef } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
 // Custom hooks
-import useDialogueNodes from './hooks/useDialogueNodes'; // Ensure this path is correct
-import useLayoutToggle from './hooks/useLayoutToggle'; // Ensure this path is correct
+// import useDialogueNodes from './hooks/useDialogueNodes'; // No longer used directly here
+import useDialogueManager from './hooks/useDialogueManager'; // Import the new manager hook
+import useLayoutToggle from './hooks/useLayoutToggle';
 
 // Components
-import DialogueFlow from './components/DialogueFlow'; // Ensure this path is correct
-import Header from './components/Header'; // Ensure this path is correct
+import DialogueFlow from './components/DialogueFlow';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar'; // Import the Sidebar
 
 // Import only global styles
 import './styles/index.css';
@@ -18,66 +19,95 @@ import './styles/index.css';
  * Main application component
  */
 function App() {
-  // Store autoLayout reference
   const autoLayoutRef = useRef(null);
 
-  // Initialize dialogue nodes and edges state
+  // Use the new Dialogue Manager hook
   const {
-    nodes,
-    edges,
-    setNodes, // Get setNodes from the hook
-    setEdges, // Get setEdges from the hook
-    onNodesChange,
+    npcs,
+    selectedNpcId,
+    selectedConversationId,
+    activeNodes,          // Use activeNodes for the flow
+    activeEdges,          // Use activeEdges for the flow
+    setNodes,             // Pass down the active setNodes
+    setEdges,             // Pass down the active setEdges
+    addNpc,
+    selectNpc,
+    addConversation,
+    selectConversation,
+    onNodesChange,        // Use the manager's handlers
     onEdgesChange,
     onConnect,
-    // createOnConnectEnd is no longer returned or needed here
     updateNodePositions,
     updateNodeLayout,
-  } = useDialogueNodes();
+  } = useDialogueManager();
 
-  // Initialize auto-layout trigger function
+  // Initialize auto-layout trigger function (targets active nodes/edges via manager)
   const triggerAutoLayout = useCallback(() => {
     if (autoLayoutRef.current) {
-      autoLayoutRef.current();
+      console.log("Triggering auto layout from App");
+      autoLayoutRef.current(); // This function is created by useAutoLayout inside DialogueFlow
+    } else {
+      console.warn("Auto layout function not yet available.");
     }
-  }, []);
+  }, []); // Dependency array is empty as autoLayoutRef.current is mutable
 
-  // Initialize layout toggle
+  // Initialize layout toggle (targets active nodes via manager)
   const { isHorizontal, toggleLayout } = useLayoutToggle(
-    updateNodeLayout,
-    triggerAutoLayout
+    updateNodeLayout,   // This now updates the layout for the *active* conversation
+    triggerAutoLayout   // This triggers layout for the *active* conversation
   );
 
-  // Store autoLayout reference from DialogueFlow
-  const handleAutoLayout = useCallback((layoutFn) => {
+  // Store autoLayout function reference from DialogueFlow
+  // This function will be based on the *currently active* nodes/edges
+  const handleAutoLayoutInitialized = useCallback((layoutFn) => {
+     console.log("AutoLayout function received from DialogueFlow");
     autoLayoutRef.current = layoutFn;
+    // Optionally run initial layout once the function is received
+    // triggerAutoLayout(); // Might cause issues if called too early, DialogueFlow's effect is better
   }, []);
 
+
   return (
-    <div className="app-container">
-      {/* Header with controls */}
-      <Header
-        isHorizontal={isHorizontal}
-        onToggleLayout={toggleLayout}
-        onAutoLayout={triggerAutoLayout}
+    // Use flexbox for overall layout
+    <div className="flex w-screen h-screen app-container">
+      {/* Sidebar */}
+      <Sidebar
+        npcs={npcs}
+        selectedNpcId={selectedNpcId}
+        selectedConversationId={selectedConversationId}
+        onSelectNpc={selectNpc}
+        onAddNpc={addNpc}
+        onSelectConversation={selectConversation}
+        onAddConversation={addConversation}
       />
 
-      {/* ReactFlow provider is required for useReactFlow hook */}
-      <ReactFlowProvider>
-        <DialogueFlow
-          nodes={nodes}
-          edges={edges}
-          setNodes={setNodes} // Pass setNodes down
-          setEdges={setEdges} // Pass setEdges down
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          // onConnectEnd prop is removed - it's handled inside DialogueFlow now
+      {/* Main Content Area */}
+      <div className="flex-grow h-full relative">
+        {/* Header remains positioned absolutely within the main area */}
+        <Header
           isHorizontal={isHorizontal}
-          updateNodePositions={updateNodePositions}
-          onInitialized={handleAutoLayout} // Passes the autoLayout function up
+          onToggleLayout={toggleLayout}
+          // Removed onAutoLayout prop from Header, trigger happens on toggle
         />
-      </ReactFlowProvider>
+
+        {/* ReactFlow provider */}
+        <ReactFlowProvider>
+          <DialogueFlow
+            // Pass the *active* nodes/edges and handlers
+            nodes={activeNodes}
+            edges={activeEdges}
+            setNodes={setNodes} // Pass the setter for the active nodes
+            setEdges={setEdges} // Pass the setter for the active edges
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            isHorizontal={isHorizontal}
+            updateNodePositions={updateNodePositions} // Pass the position updater
+            onInitialized={handleAutoLayoutInitialized} // Receive the layout function
+            selectedConversationId={selectedConversationId} // Pass down the ID
+          />
+        </ReactFlowProvider>
+      </div>
     </div>
   );
 }

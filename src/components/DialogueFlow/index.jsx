@@ -1,23 +1,32 @@
-// components/DialogueFlow/index.jsx
+// src/components/DialogueFlow/index.jsx
 import React, { useEffect, memo, useCallback, useRef } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
   Background,
   useReactFlow,
+  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-// ... other imports ...
+// Internal hook for layout logic
 import useAutoLayout from './useAutoLayout';
+// Custom node component
 import DialogueNode from './DialogueNode';
-import { getNextNodeId } from '../../hooks/useDialogueNodes';
+// Centralized ID generator
+import { getNextNodeId } from '../../constants/initialData';
 
+// Define node types used in the flow
 const nodeTypes = {
   custom: DialogueNode,
+  input: DialogueNode,
 };
 
-const DialogueFlow = ({
+/**
+ * DialogueFlow Component
+ * Renders the React Flow canvas and handles interactions for the *active* dialogue.
+ */
+const DialogueFlow = memo(({
   nodes,
   edges,
   setNodes,
@@ -28,11 +37,16 @@ const DialogueFlow = ({
   isHorizontal,
   updateNodePositions,
   onInitialized,
+  selectedConversationId, // Receive conversation ID
 }) => {
   const reactFlowInstance = useReactFlow();
   const connectingNode = useRef(null);
   const initialLayoutRun = useRef(false);
+  const nodesRef = useRef(nodes);
+  const prevConversationIdRef = useRef(selectedConversationId);
+  const prevIsHorizontalRef = useRef(isHorizontal); // Track previous layout direction
 
+  // Initialize the auto-layout hook
   const autoLayout = useAutoLayout(
     nodes,
     edges,
@@ -42,122 +56,151 @@ const DialogueFlow = ({
 
   // --- Effects ---
 
-  // Pass autoLayout up
+  // Effect 1: Pass layout function up when it's ready or changes identity.
   useEffect(() => {
     if (onInitialized && typeof autoLayout === 'function') {
+      console.log("[DialogueFlow Effect 1] Passing autoLayout function up.");
       onInitialized(autoLayout);
     }
-  }, [autoLayout, onInitialized]);
+  }, [autoLayout, onInitialized]); // Only depends on autoLayout function identity and the callback prop
 
-  // CORRECTED Effect for Initial Layout and Layout Toggling
+  // Effect 1.5: Reset initial layout flag when the selected conversation changes.
   useEffect(() => {
-    if (!reactFlowInstance) return;
-    const currentAutoLayout = autoLayout;
-    if (typeof currentAutoLayout !== 'function') return;
+    if (prevConversationIdRef.current !== selectedConversationId) {
+        console.log(`[DialogueFlow Effect 1.5] Conversation changed (${prevConversationIdRef.current} -> ${selectedConversationId}), resetting initialLayoutRun flag.`);
+        initialLayoutRun.current = false;
+        prevConversationIdRef.current = selectedConversationId; // Update the ref
+    }
+    nodesRef.current = nodes; // Keep track of current nodes ref, might be useful
+  }, [selectedConversationId, nodes]); // Run when conversation ID changes, or nodes array changes (to update nodesRef)
+
+  // Effect 2: Handle initial layout and layout changes triggered by `isHorizontal`.
+  useEffect(() => {
+    if (!reactFlowInstance || typeof autoLayout !== 'function' || nodes.length === 0) {
+      console.log(`[Layout Effect 2] Skipping: Instance=${!!reactFlowInstance}, LayoutFunc=${typeof autoLayout === 'function'}, Nodes=${nodes.length}`);
+      return;
+    }
+
+    const conversationJustLoaded = !initialLayoutRun.current; // True if initial layout hasn't run for this conversation
+    const layoutDirectionChanged = prevIsHorizontalRef.current !== isHorizontal; // True if layout toggled
 
     let shouldRunLayout = false;
-    if (!initialLayoutRun.current) {
+    if (conversationJustLoaded) {
       shouldRunLayout = true;
-      console.log("[Layout Effect] Running INITIAL layout/fitView."); // Log
-    } else {
-      // This block will run if isHorizontal changes AFTER initial load
-      shouldRunLayout = true; // Assume isHorizontal change triggered it
-      console.log("[Layout Effect] Running layout/fitView due to isHorizontal change."); // Log
+      console.log("[Layout Effect 2] Needs INITIAL layout for this conversation.");
+    } else if (layoutDirectionChanged) {
+      console.log("[Layout Effect 2] Layout direction changed, running layout again.");
+      shouldRunLayout = true;
     }
 
     if (shouldRunLayout) {
+      console.log("[Layout Effect 2] Scheduling layout (initial or direction change)...");
+      // Use timeout to allow DOM updates before layout
       const layoutTimer = setTimeout(() => {
-        console.log("[Layout Effect] Executing currentAutoLayout()..."); // Log
-        currentAutoLayout();
-        const fitViewTimer = setTimeout(() => {
-          console.log("[Layout Effect] Executing fitView()..."); // Log
-          reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
-          if (!initialLayoutRun.current) {
+        console.log("[Layout Effect 2] Executing autoLayout()...");
+        autoLayout(); // Execute the layout function
+
+        // Set flag after layout is applied (since fitView is removed)
+        // Only mark as run if it was the initial run for this specific conversation ID
+        if (conversationJustLoaded) {
             initialLayoutRun.current = true;
-          }
-        }, 50);
-        return () => clearTimeout(fitViewTimer);
-      }, 100);
+            console.log("[Layout Effect 2] Marked initialLayoutRun as true (after layout).");
+        }
+        // Update the ref for tracking layout direction changes AFTER this run
+        prevIsHorizontalRef.current = isHorizontal;
+
+      }, 50);
       return () => clearTimeout(layoutTimer);
     }
-  // Dependencies: isHorizontal, reactFlowInstance. Correctly excludes autoLayout.
-  }, [isHorizontal, reactFlowInstance]);
+    // Dependencies: ReactFlow instance, nodes (layout needs current nodes), layout direction, and the layout function itself.
+    // The logic *inside* now prevents unnecessary runs based on nodes/autoLayout ref changes alone after the initial load/direction change.
+  }, [reactFlowInstance, nodes, isHorizontal, autoLayout]);
 
 
   // --- Interaction Handlers ---
 
+  // Called when dragging starts from a handle. Store source info.
   const handleConnectStart = useCallback((event, { nodeId, handleId, handleType }) => {
     connectingNode.current = { nodeId, handleId, handleType };
-    // --- DEBUG LOG ---
-    console.log('[Connect Start] Set connectingNode.current:', connectingNode.current);
-  }, []); // No dependencies needed here
+    console.log('[Connect Start] Stored connecting node info:', connectingNode.current);
+  }, []);
 
-  const handleConnect = useCallback(
-    (params) => {
-      // --- DEBUG LOG ---
-      console.log('[Connect Success] Connection successful:', params);
-      onConnect(params); // Call original onConnect from props
-      console.log('[Connect Success] Clearing connectingNode.current');
-      connectingNode.current = null; // Clear ref on success
-    },
-    [onConnect] // Depends only on the onConnect function prop
-  );
-
+  // Called when a connection drag ends. Creates node if dropped on pane.
   const handleConnectEnd = useCallback(
     (event) => {
-      // --- DEBUG LOG ---
       console.log('[Connect End] Triggered.');
+      const connectingInfo = connectingNode.current;
 
-      const targetIsPane = event.target?.classList.contains('react-flow__pane');
-      // --- DEBUG LOGS ---
+      // Check if event is defined and has target property
+      const targetIsPane = event?.target?.classList.contains('react-flow__pane');
+
       console.log('[Connect End] Target is pane:', targetIsPane);
-      console.log('[Connect End] connectingNode.current before check:', connectingNode.current);
-      console.log('[Connect End] reactFlowInstance available:', !!reactFlowInstance);
+      console.log('[Connect End] Connecting node info:', connectingInfo);
+      console.log('[Connect End] Instance available:', !!reactFlowInstance);
+      console.log('[Connect End] setNodes available:', typeof setNodes === 'function');
+      console.log('[Connect End] setEdges available:', typeof setEdges === 'function');
 
-      // Check if conditions are met to add a node
-      if (targetIsPane && connectingNode.current && reactFlowInstance) {
-        // --- DEBUG LOG ---
-        console.log('[Connect End] Conditions met! Creating node...');
+      if (targetIsPane && connectingInfo && reactFlowInstance && setNodes && setEdges) {
+        console.log('[Connect End] Conditions met! Creating new node and edge...');
 
-        const { nodeId: sourceNodeId, handleId: sourceHandleId } = connectingNode.current;
+        const { nodeId: sourceNodeId, handleId: sourceHandleId } = connectingInfo;
+        // Ensure event is defined before accessing clientX/clientY
+        const clientX = event && ('changedTouches' in event ? event.changedTouches[0]?.clientX : event.clientX);
+        const clientY = event && ('changedTouches' in event ? event.changedTouches[0]?.clientY : event.clientY);
 
-        const { clientX, clientY } = 'changedTouches' in event ? event.changedTouches[0] : event;
+        // Check if clientX/clientY are valid numbers before proceeding
+        if (typeof clientX !== 'number' || typeof clientY !== 'number') {
+            console.error('[Connect End] Could not determine drop coordinates.');
+            connectingNode.current = null;
+            return;
+        }
+
+
         const position = reactFlowInstance.screenToFlowPosition({ x: clientX, y: clientY });
-        console.log('[Connect End] Calculated position:', position); // Log position
+        console.log('[Connect End] Calculated new node position:', position);
 
         const newNodeId = getNextNodeId();
         const newNode = {
-          id: newNodeId, type: 'custom', position,
-          data: { label: `New Response ${newNodeId}` },
-          className: 'node-more',
-          sourcePosition: isHorizontal ? 'right' : 'bottom',
-          targetPosition: isHorizontal ? 'left' : 'top',
+          id: newNodeId,
+          type: 'custom',
+          position,
+          data: {
+            label: `New Response ${newNodeId}`,
+            className: 'node-more', // <-- Move className inside data
+          },
+          // className: 'node-more', // Removed from top level
+          sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+          targetPosition: isHorizontal ? Position.Left : Position.Top,
         };
-        console.log('[Connect End] New node:', newNode); // Log new node object
+        console.log('[Connect End] New node object:', newNode);
 
         const newEdge = {
-          id: `e${sourceNodeId}-${newNodeId}`, source: sourceNodeId, target: newNodeId, sourceHandle: sourceHandleId,
+          id: `e${sourceNodeId}-${newNodeId}`,
+          source: sourceNodeId,
+          target: newNodeId,
+          sourceHandle: sourceHandleId,
         };
-        console.log('[Connect End] New edge:', newEdge); // Log new edge object
+        console.log('[Connect End] New edge object:', newEdge);
 
-        // --- DEBUG LOG ---
-        console.log('[Connect End] Calling setNodes...');
+        console.log('[Connect End] Calling setNodes (via prop)...');
         setNodes((nds) => [...nds, newNode]);
-        console.log('[Connect End] Calling setEdges...');
+        console.log('[Connect End] Calling setEdges (via prop)...');
         setEdges((eds) => [...eds, newEdge]);
-        console.log('[Connect End] State updates called.');
+        console.log('[Connect End] State update calls dispatched.');
 
       } else {
-        // --- DEBUG LOG ---
-        console.log('[Connect End] Conditions NOT met. Node not created.');
+         if (!targetIsPane) console.log('[Connect End] Target was not the pane.');
+         if (!connectingInfo) console.log('[Connect End] No connecting node info stored.');
+         if (!reactFlowInstance) console.log('[Connect End] ReactFlow instance not available.');
+         if (typeof setNodes !== 'function') console.log('[Connect End] setNodes function not available.');
+         if (typeof setEdges !== 'function') console.log('[Connect End] setEdges function not available.');
+         console.log('[Connect End] Conditions NOT met. Node not created.');
       }
 
-      // --- DEBUG LOG ---
-      console.log('[Connect End] Clearing connectingNode.current');
-      connectingNode.current = null; // ALWAYS clear ref at the end
+      console.log('[Connect End] Clearing connecting node info.');
+      connectingNode.current = null;
     },
-    // Dependencies are crucial: Include everything from outside the callback that it uses.
-    [reactFlowInstance, setNodes, setEdges, isHorizontal /* Add any other external vars if used */]
+    [reactFlowInstance, setNodes, setEdges, isHorizontal] // Added isHorizontal dependency for new node handle positions
   );
 
 
@@ -168,18 +211,27 @@ const DialogueFlow = ({
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onConnectStart={handleConnectStart} // Ensure this is passed
-      onConnect={handleConnect}           // Ensure this is passed
-      onConnectEnd={handleConnectEnd}     // Ensure this is passed
+      onConnectStart={handleConnectStart}
+      onConnect={onConnect}
+      onConnectEnd={handleConnectEnd}
       nodeTypes={nodeTypes}
+      // **REMOVED fitView prop**
+      // fitView
+      // fitViewOptions={{ padding: 0.2, duration: 300 }} // Also remove options if fitView is removed
       attributionPosition="bottom-right"
       className="dialogue-flow-canvas bg-gray-50"
+      // Keep viewport static unless user pans/zooms
+      defaultViewport={{ x: 0, y: 0, zoom: 1 }} // Optional: Set an initial viewport
+      // Prevent zoom/pan if needed (uncomment):
+      // zoomOnScroll={false}
+      // panOnDrag={false}
+      // zoomOnDoubleClick={false}
     >
       <Controls />
       <MiniMap nodeStrokeWidth={3} zoomable pannable />
-      <Background color="#aaa" gap={16} />
+      <Background color="#aaa" gap={16} variant="dots" />
     </ReactFlow>
   );
-};
+});
 
-export default memo(DialogueFlow);
+export default DialogueFlow;

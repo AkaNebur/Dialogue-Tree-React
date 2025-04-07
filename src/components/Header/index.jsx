@@ -7,14 +7,15 @@ import React, { memo } from 'react';
  * @param {boolean} props.isHorizontal - Current layout direction
  * @param {Function} props.onToggleLayout - Layout toggle handler
  */
-const Header = ({ isHorizontal, onToggleLayout }) => {
+const Header = memo(({ isHorizontal, onToggleLayout }) => { // Use memo
   return (
-    <div className="absolute top-0 left-0 z-10 p-4 m-4 bg-white bg-opacity-90 rounded-lg shadow-md">
+    // Use the updated class name from CSS
+    <div className="header-container">
       <h1 className="text-xl font-bold text-gray-800">Dialogue Tree Builder</h1>
       <p className="text-sm text-gray-600 mb-4">
-        Create and visualize dialogue trees for your game or application
+        Select NPCs and Conversations in the sidebar.
       </p>
-      
+
       <div className="flex flex-col sm:flex-row gap-2">
         <button
           onClick={onToggleLayout}
@@ -22,10 +23,11 @@ const Header = ({ isHorizontal, onToggleLayout }) => {
         >
           {isHorizontal ? 'Switch to Vertical Layout' : 'Switch to Horizontal Layout'}
         </button>
+        {/* Removed Auto Layout Button - it now runs on toggle or initial load */}
       </div>
     </div>
   );
-};
+});
 
-// Memoize the component to prevent unnecessary re-renders
-export default memo(Header);
+// Memoize the component
+export default Header; // Ensure export default memo works or export default memo(Header)

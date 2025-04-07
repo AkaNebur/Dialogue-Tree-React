@@ -4,44 +4,44 @@
 
 @layer components {
   /* Node Styles */
-  .node-start {
-    @apply bg-white border-gray-300;
-  }
-
-  .node-hello {
-    @apply bg-blue-100 border-blue-300;
-  }
-
-  .node-products {
-    @apply bg-green-100 border-green-300;
-  }
-
-  .node-great {
-    @apply bg-yellow-100 border-yellow-300;
-  }
-
-  .node-more {
-    @apply bg-purple-100 border-purple-300;
-  }
-
-  .node-later {
-    @apply bg-red-100 border-red-300;
-  }
+  .node-start { @apply bg-white border-gray-300; }
+  .node-hello { @apply bg-blue-100 border-blue-300; }
+  .node-products { @apply bg-green-100 border-green-300; }
+  .node-great { @apply bg-yellow-100 border-yellow-300; }
+  .node-more { @apply bg-purple-100 border-purple-300; }
+  .node-later { @apply bg-red-100 border-red-300; }
 
   /* Common node styles */
-  .dialogue-node {
-    @apply p-4 border border-solid rounded-md shadow-md;
+  .node-more {
+    @apply p-4 border border-solid rounded-md shadow-md text-center min-w-[150px]; /* Ensure min width */
   }
 
-  /* App container */
+  /* App container - now uses flex */
   .app-container {
-    @apply w-screen h-screen relative;
+    @apply flex w-screen h-screen overflow-hidden; /* Prevent overall scroll */
   }
 
-  /* Ensure proper sizing for React Flow */
-  .reactflow-wrapper {
-    @apply w-full h-full;
+  /* Sidebar Styles */
+  .sidebar {
+     @apply w-64 h-full bg-gray-800 text-white p-4 flex flex-col overflow-y-auto shrink-0;
+     /* shrink-0 prevents the sidebar from shrinking */
   }
+
+  /* Main Content Area */
+  .main-content {
+    @apply flex-grow h-full relative; /* Takes remaining space */
+  }
+
+  /* Ensure React Flow takes full space within its container */
+  .dialogue-flow-canvas {
+     @apply w-full h-full;
+  }
+
+  /* Header positioning */
+  .header-container {
+      @apply absolute top-0 left-0 z-10 p-4 m-4 bg-white bg-opacity-90 rounded-lg shadow-md;
+  }
+
 }
 
 /* Ensure we have proper sizing */
