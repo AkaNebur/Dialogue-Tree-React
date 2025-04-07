@@ -1,33 +1,24 @@
+// src/components/Header/index.jsx
 import React, { memo } from 'react';
+import { ArrowDown, ArrowRight } from 'lucide-react';
 
 /**
- * Header component with title, subtitle and layout control
- *
+ * Floating layout toggle button
+ * 
  * @param {Object} props - Component props
  * @param {boolean} props.isHorizontal - Current layout direction
  * @param {Function} props.onToggleLayout - Layout toggle handler
  */
-const Header = memo(({ isHorizontal, onToggleLayout }) => { // Use memo
+const Header = memo(({ isHorizontal, onToggleLayout }) => {
   return (
-    // Use the updated class name from CSS
-    <div className="header-container">
-      <h1 className="text-xl font-bold text-gray-800">Dialogue Tree Builder</h1>
-      <p className="text-sm text-gray-600 mb-4">
-        Select NPCs and Conversations in the sidebar.
-      </p>
-
-      <div className="flex flex-col sm:flex-row gap-2">
-        <button
-          onClick={onToggleLayout}
-          className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-        >
-          {isHorizontal ? 'Switch to Vertical Layout' : 'Switch to Horizontal Layout'}
-        </button>
-        {/* Removed Auto Layout Button - it now runs on toggle or initial load */}
-      </div>
-    </div>
+    <button
+      onClick={onToggleLayout}
+      className="absolute top-4 right-4 z-10 p-3 text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors shadow-md"
+      title={isHorizontal ? 'Switch to Vertical Layout' : 'Switch to Horizontal Layout'}
+    >
+      {isHorizontal ? <ArrowDown size={20} /> : <ArrowRight size={20} />}
+    </button>
   );
 });
 
-// Memoize the component
-export default Header; // Ensure export default memo works or export default memo(Header)
+export default Header;
