@@ -22,6 +22,13 @@ export default {
           great: '#fcd34d',
           more: '#d8b4fe',
           later: '#fca5a5',
+        },
+        mono: {
+          bg: '#121212',
+          text: '#E0E0E0',
+          secondaryText: '#B0B0B0',
+          border: '#444444',
+          accent: '#888888',
         }
       }
     },

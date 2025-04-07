@@ -57,23 +57,23 @@ html, body, #root {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background-color: rgba(31, 41, 55, 0.5); /* bg-gray-800 with opacity */
+  background-color: rgba(18, 18, 18, 0.7); /* mono-bg with opacity */
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(75, 85, 99, 0.8); /* bg-gray-600 with opacity */
+  background-color: rgba(68, 68, 68, 0.8); /* mono-border with opacity */
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(107, 114, 128, 0.8); /* bg-gray-500 with opacity */
+  background-color: rgba(136, 136, 136, 0.8); /* mono-accent with opacity */
 }
 
 /* Firefox scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(75, 85, 99, 0.8) rgba(31, 41, 55, 0.5);
+  scrollbar-color: rgba(68, 68, 68, 0.8) rgba(18, 18, 18, 0.7);
 }
 
 /* Additional styles for sidebar elements */

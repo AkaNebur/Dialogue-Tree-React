@@ -1,7 +1,8 @@
 import React, { useState, memo } from 'react';
+import useResizableSidebar from '../../hooks/useResizableSidebar';
 
 /**
- * Enhanced Sidebar for managing NPCs and Conversations
+ * Enhanced Sidebar for managing NPCs and Conversations with resizable width
  */
 const Sidebar = memo(({
   npcs,
@@ -16,6 +17,9 @@ const Sidebar = memo(({
   const [newConversationName, setNewConversationName] = useState('');
   const [isAddingNpc, setIsAddingNpc] = useState(false);
   const [isAddingConversation, setIsAddingConversation] = useState(false);
+  
+  // Use our custom hook for resizable sidebar
+  const { sidebarWidth, isDragging, startResize } = useResizableSidebar(256); // 256px = 16rem (w-64)
 
   const handleAddNpc = (e) => {
     e.preventDefault();
@@ -38,20 +42,23 @@ const Sidebar = memo(({
   const selectedNpc = npcs.find(npc => npc.id === selectedNpcId);
 
   return (
-    <div className="w-64 h-full bg-gray-900 text-gray-100 flex flex-col overflow-y-auto border-r border-gray-700">
+    <div 
+      className="h-full bg-mono-bg text-mono-text flex flex-col overflow-y-auto border-r border-mono-border relative"
+      style={{ width: `${sidebarWidth}px` }}
+    >
       {/* Header */}
-      <div className="bg-gray-800 px-4 py-3 border-b border-gray-700">
-        <h1 className="text-xl font-bold text-white">Dialogue Builder</h1>
-        <p className="text-xs text-gray-400 mt-1">Create and manage NPC dialogues</p>
+      <div className="bg-black px-4 py-3 border-b border-mono-border">
+        <h1 className="text-xl font-bold text-mono-text">Dialogue Builder</h1>
+        <p className="text-xs text-mono-secondaryText mt-1">Create and manage NPC dialogues</p>
       </div>
       
       {/* NPC Section */}
       <div className="p-4">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">NPCs</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-mono-secondaryText">NPCs</h2>
           <button 
             onClick={() => setIsAddingNpc(!isAddingNpc)}
-            className="p-1 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
+            className="p-1 rounded-full bg-mono-border hover:bg-mono-accent transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
@@ -67,12 +74,12 @@ const Sidebar = memo(({
                 value={newNpcName}
                 onChange={(e) => setNewNpcName(e.target.value)}
                 placeholder="NPC Name"
-                className="flex-grow px-3 py-2 bg-gray-800 text-white text-sm rounded-l-md border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-grow px-3 py-2 bg-black text-mono-text text-sm rounded-l-md border border-mono-border focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 autoFocus
               />
               <button
                 type="submit"
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-md transition-colors"
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-mono-text rounded-r-md transition-colors"
               >
                 Add
               </button>
@@ -80,7 +87,7 @@ const Sidebar = memo(({
             <button 
               type="button" 
               onClick={() => setIsAddingNpc(false)}
-              className="text-xs text-gray-400 hover:text-gray-300"
+              className="text-xs text-mono-secondaryText hover:text-mono-text"
             >
               Cancel
             </button>
@@ -88,7 +95,7 @@ const Sidebar = memo(({
         ) : (
           <button
             onClick={() => setIsAddingNpc(true)}
-            className="w-full mb-4 px-3 py-2 flex justify-center items-center text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
+            className="w-full mb-4 px-3 py-2 flex justify-center items-center text-sm bg-black hover:bg-mono-border text-mono-secondaryText rounded border border-mono-border transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
@@ -104,26 +111,26 @@ const Sidebar = memo(({
               onClick={() => onSelectNpc(npc.id)}
               className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-all duration-200 ${
                 npc.id === selectedNpcId 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'bg-blue-600 text-mono-text shadow-md' 
+                  : 'text-mono-secondaryText hover:bg-black hover:text-mono-text'
               }`}
             >
               {npc.name}
             </button>
           ))}
           {npcs.length === 0 && (
-            <p className="text-gray-500 text-xs italic text-center py-2">No NPCs created yet.</p>
+            <p className="text-mono-secondaryText text-xs italic text-center py-2">No NPCs created yet.</p>
           )}
         </div>
       </div>
 
       {/* Divider */}
-      <div className="border-t border-gray-800 mx-4"></div>
+      <div className="border-t border-mono-border mx-4"></div>
 
       {/* Conversation Section */}
       <div className="p-4 flex-grow">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-mono-secondaryText">
             {selectedNpc ? `${selectedNpc.name}'s Dialogues` : 'Dialogues'}
           </h2>
           {selectedNpc && (
@@ -132,8 +139,8 @@ const Sidebar = memo(({
               disabled={!selectedNpcId}
               className={`p-1 rounded-full ${
                 selectedNpcId 
-                  ? 'bg-gray-700 hover:bg-gray-600' 
-                  : 'bg-gray-800 text-gray-700 cursor-not-allowed'
+                  ? 'bg-mono-border hover:bg-mono-accent' 
+                  : 'bg-black text-mono-border cursor-not-allowed'
               } transition-colors`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -153,12 +160,12 @@ const Sidebar = memo(({
                     value={newConversationName}
                     onChange={(e) => setNewConversationName(e.target.value)}
                     placeholder="Dialogue Name"
-                    className="flex-grow px-3 py-2 bg-gray-800 text-white text-sm rounded-l-md border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-grow px-3 py-2 bg-black text-mono-text text-sm rounded-l-md border border-mono-border focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                     autoFocus
                   />
                   <button
                     type="submit"
-                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-r-md transition-colors"
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-mono-text rounded-r-md transition-colors"
                   >
                     Add
                   </button>
@@ -166,7 +173,7 @@ const Sidebar = memo(({
                 <button 
                   type="button" 
                   onClick={() => setIsAddingConversation(false)}
-                  className="text-xs text-gray-400 hover:text-gray-300"
+                  className="text-xs text-mono-secondaryText hover:text-mono-text"
                 >
                   Cancel
                 </button>
@@ -177,9 +184,9 @@ const Sidebar = memo(({
                 disabled={!selectedNpcId}
                 className={`w-full mb-4 px-3 py-2 flex justify-center items-center text-sm ${
                   selectedNpcId 
-                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' 
-                    : 'bg-gray-800 text-gray-700 cursor-not-allowed'
-                } rounded border border-gray-700 transition-colors`}
+                    ? 'bg-black hover:bg-mono-border text-mono-secondaryText' 
+                    : 'bg-black text-mono-border cursor-not-allowed'
+                } rounded border border-mono-border transition-colors`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
@@ -195,33 +202,50 @@ const Sidebar = memo(({
                   onClick={() => onSelectConversation(conv.id)}
                   className={`w-full text-left px-3 py-2 rounded text-sm transition-all duration-200 ${
                     conv.id === selectedConversationId 
-                      ? 'bg-green-600 text-white shadow-md' 
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      ? 'bg-green-600 text-mono-text shadow-md' 
+                      : 'text-mono-secondaryText hover:bg-black hover:text-mono-text'
                   }`}
                 >
                   {conv.name}
                 </button>
               ))}
               {selectedNpc.conversations.length === 0 && (
-                <p className="text-gray-500 text-xs italic text-center py-2">No dialogues created yet.</p>
+                <p className="text-mono-secondaryText text-xs italic text-center py-2">No dialogues created yet.</p>
               )}
             </div>
           </>
         ) : (
-          <div className="bg-gray-800 rounded-md p-4 text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="bg-black rounded-md p-4 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-mono-border mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <p className="text-gray-400 text-sm">Select an NPC to see dialogues</p>
+            <p className="text-mono-secondaryText text-sm">Select an NPC to see dialogues</p>
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-800 p-3 border-t border-gray-700 mt-auto">
-        <div className="text-xs text-gray-500 text-center">
+      <div className="bg-black p-3 border-t border-mono-border mt-auto">
+        <div className="text-xs text-mono-secondaryText text-center">
           <p>Dialogue Tree Builder</p>
           <p className="mt-1">Right-click node to edit</p>
+        </div>
+      </div>
+
+      {/* Resize handle - distinct protrusion from the sidebar */}
+      <div 
+        className="absolute top-0 right-0 w-8 h-full cursor-col-resize z-10 flex items-center justify-center"
+        onMouseDown={startResize}
+        title="Drag to resize sidebar"
+      >
+        <div className={`absolute top-1/2 -mt-12 -right-2 w-4 h-24 flex items-center justify-center ${isDragging ? 'z-20' : 'z-10'}`}>
+          <div className={`w-4 h-20 rounded-r-md ${isDragging ? 'bg-blue-500 shadow-lg' : 'bg-mono-accent'} hover:bg-blue-500 transition-colors flex items-center justify-center shadow-md`}>
+            <div className="flex flex-col items-center justify-center gap-1">
+              <div className="w-1 h-2 bg-mono-text rounded-full"></div>
+              <div className="w-1 h-2 bg-mono-text rounded-full"></div>
+              <div className="w-1 h-2 bg-mono-text rounded-full"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
