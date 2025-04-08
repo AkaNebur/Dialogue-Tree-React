@@ -6,8 +6,6 @@ import ReactFlow, {
   Background,
   useReactFlow,
   Position,
-  Connection,
-  OnConnectStartParams,
   NodeTypes,
   OnConnectStart,
   OnConnectEnd,
@@ -69,14 +67,16 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
     updateNodePositions
   );
 
-  // Create fitView function that can be passed up to parent
+  // Create fitView function with increased padding to prevent excessive zoom
   const handleFitView = useCallback(() => {
     if (reactFlowInstance) {
-      console.log("[DialogueFlow] Executing fitView.");
+      console.log("[DialogueFlow] Executing fitView with increased padding.");
       reactFlowInstance.fitView({
-        padding: 0.2,
-        duration: 300,
-        includeHiddenNodes: false
+        padding: 0.6, // Increased from 0.2 to 0.6 for less zoom
+        duration: 400, // Slightly longer animation
+        includeHiddenNodes: false,
+        minZoom: 0.5, // Set minimum zoom level
+        maxZoom: 1.5  // Set maximum zoom level
       });
     } else {
       console.warn("[DialogueFlow] Cannot fitView: reactFlowInstance not available.");
@@ -161,7 +161,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
 
   // Called when dragging starts from a handle. Store source info.
   const handleConnectStart: OnConnectStart = useCallback((
-    event, 
+    _event,  
     params
   ) => {
     connectingNode.current = { 
@@ -272,7 +272,9 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
       nodeTypes={nodeTypes}
       attributionPosition="bottom-right"
       className="dialogue-flow-canvas bg-gray-50"
-      defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+      defaultViewport={{ x: 0, y: 0, zoom: 0.8 }} // Set default zoom level lower
+      minZoom={0.3} // Allow zooming out further
+      maxZoom={1.5} // Limit maximum zoom
     >
       <Controls />
       <MiniMap nodeStrokeWidth={3} zoomable pannable />

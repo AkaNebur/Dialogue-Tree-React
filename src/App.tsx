@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/App.tsx - Updated for full-screen flow with floating cards
 import React, { useCallback, useRef } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
@@ -9,122 +9,119 @@ import useLayoutToggle from './hooks/useLayoutToggle';
 // Components
 import DialogueFlow from './components/DialogueFlow';
 import Header from './components/Header';
-import Sidebar from './components/Sidebar';
+import CardSidebar from './components/CardSidebar';
 
 // Import global styles
 import './styles/index.css';
 
 /**
- * Main application component
+ * Main application component with full-screen flow and floating cards
  */
 const App: React.FC = () => {
   const autoLayoutRef = useRef<(() => void) | null>(null);
-  const fitViewRef = useRef<(() => void) | null>(null); // Reference to store fitView function
+  const fitViewRef = useRef<(() => void) | null>(null);
 
-  // Use the new Dialogue Manager hook
+  // Use the Dialogue Manager hook
   const {
     npcs,
     selectedNpcId,
     selectedConversationId,
-    activeNodes,          // Use activeNodes for the flow
-    activeEdges,          // Use activeEdges for the flow
-    setNodes,             // Pass down the active setNodes
-    setEdges,             // Pass down the active setEdges
+    activeNodes,
+    activeEdges,
+    setNodes,
+    setEdges,
     addNpc,
     selectNpc,
     addConversation,
     selectConversation,
-    onNodesChange,        // Use the manager's handlers
+    onNodesChange,
     onEdgesChange,
     onConnect,
     updateNodePositions,
     updateNodeLayout,
   } = useDialogueManager();
 
-  // Initialize auto-layout trigger function (targets active nodes/edges via manager)
+  // Initialize auto-layout trigger function
   const triggerAutoLayout = useCallback(() => {
     if (autoLayoutRef.current) {
       console.log("Triggering auto layout from App");
-      autoLayoutRef.current(); // This function is created by useAutoLayout inside DialogueFlow
+      autoLayoutRef.current();
     } else {
       console.warn("Auto layout function not yet available.");
     }
-  }, []); // Dependency array is empty as autoLayoutRef.current is mutable
+  }, []);
 
   // Initialize fitView trigger function
   const triggerFitView = useCallback(() => {
     if (fitViewRef.current) {
       console.log("Triggering fitView from App");
-      fitViewRef.current(); // Call the fitView function received from DialogueFlow
+      fitViewRef.current();
     } else {
       console.warn("FitView function not yet available.");
     }
-  }, []); // No dependencies needed as fitViewRef.current is mutable
+  }, []);
 
-  // Initialize layout toggle (targets active nodes via manager)
+  // Initialize layout toggle
   const { isHorizontal, toggleLayout } = useLayoutToggle(
-    updateNodeLayout,   // This now updates the layout for the *active* conversation
-    triggerAutoLayout   // This triggers layout for the *active* conversation
+    updateNodeLayout,
+    triggerAutoLayout
   );
 
   // Store autoLayout function reference from DialogueFlow
-  // This function will be based on the *currently active* nodes/edges
   const handleAutoLayoutInitialized = useCallback((layoutFn: () => void) => {
     console.log("AutoLayout function received from DialogueFlow");
     autoLayoutRef.current = layoutFn;
-    // Optionally run initial layout once the function is received
-    // triggerAutoLayout(); // Might cause issues if called too early, DialogueFlow's effect is better
   }, []);
 
   // Store fitView function reference from DialogueFlow
   const handleFitViewInitialized = useCallback((fitViewFn: () => void) => {
     console.log("FitView function received from DialogueFlow");
     fitViewRef.current = fitViewFn;
-    // Note: We don't call it immediately here
   }, []);
 
-
   return (
-    // Use flexbox for overall layout
-    <div className="flex w-screen h-screen app-container">
-      {/* Sidebar */}
-      <Sidebar
-        npcs={npcs}
-        selectedNpcId={selectedNpcId}
-        selectedConversationId={selectedConversationId}
-        onSelectNpc={selectNpc}
-        onAddNpc={addNpc}
-        onSelectConversation={selectConversation}
-        onAddConversation={addConversation}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-grow h-full relative">
-        {/* Header remains positioned absolutely within the main area */}
-        <Header
-          isHorizontal={isHorizontal}
-          onToggleLayout={toggleLayout}
-          onFitView={triggerFitView} // Pass the fitView trigger function to Header
-        />
-
-        {/* ReactFlow provider */}
-        <ReactFlowProvider>
+    // Full-screen container
+    <div className="w-screen h-screen relative overflow-hidden">
+      {/* ReactFlow takes up the entire screen */}
+      <ReactFlowProvider>
+        <div className="w-full h-full">
           <DialogueFlow
-            // Pass the *active* nodes/edges and handlers
             nodes={activeNodes}
             edges={activeEdges}
-            setNodes={setNodes} // Pass the setter for the active nodes
-            setEdges={setEdges} // Pass the setter for the active edges
+            setNodes={setNodes}
+            setEdges={setEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             isHorizontal={isHorizontal}
-            updateNodePositions={updateNodePositions} // Pass the position updater
-            onInitialized={handleAutoLayoutInitialized} // Receive the layout function
-            onFitViewInitialized={handleFitViewInitialized} // Receive the fitView function
-            selectedConversationId={selectedConversationId} // Pass down the ID
+            updateNodePositions={updateNodePositions}
+            onInitialized={handleAutoLayoutInitialized}
+            onFitViewInitialized={handleFitViewInitialized}
+            selectedConversationId={selectedConversationId}
           />
-        </ReactFlowProvider>
+        </div>
+      </ReactFlowProvider>
+      
+      {/* Floating Header */}
+      <div className="absolute top-4 right-4 z-30">
+        <Header
+          isHorizontal={isHorizontal}
+          onToggleLayout={toggleLayout}
+          onFitView={triggerFitView}
+        />
+      </div>
+      
+      {/* Floating Card Sidebar */}
+      <div className="absolute top-4 left-4 z-20">
+        <CardSidebar
+          npcs={npcs}
+          selectedNpcId={selectedNpcId}
+          selectedConversationId={selectedConversationId}
+          onSelectNpc={selectNpc}
+          onAddNpc={addNpc}
+          onSelectConversation={selectConversation}
+          onAddConversation={addConversation}
+        />
       </div>
     </div>
   );

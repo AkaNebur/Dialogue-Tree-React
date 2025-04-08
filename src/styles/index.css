@@ -51,29 +51,28 @@ html, body, #root {
 
 /* Add this to your src/styles/index.css file */
 
-/* Custom scrollbar for sidebar elements */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+.card-scrollbar::-webkit-scrollbar {
+  width: 5px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background-color: rgba(18, 18, 18, 0.7); /* mono-bg with opacity */
-  border-radius: 10px;
+.card-scrollbar::-webkit-scrollbar-track {
+  background-color: rgba(239, 246, 255, 0.6); /* light blue background */
+  border-radius: 8px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(68, 68, 68, 0.8); /* mono-border with opacity */
-  border-radius: 10px;
+.card-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(96, 165, 250, 0.6); /* blue-400 with opacity */
+  border-radius: 8px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(136, 136, 136, 0.8); /* mono-accent with opacity */
+.card-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.8); /* blue-500 with opacity */
 }
 
 /* Firefox scrollbar */
-.custom-scrollbar {
+.card-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(68, 68, 68, 0.8) rgba(18, 18, 18, 0.7);
+  scrollbar-color: rgba(96, 165, 250, 0.6) rgba(239, 246, 255, 0.6);
 }
 
 /* Additional styles for sidebar elements */
