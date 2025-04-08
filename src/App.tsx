@@ -1,5 +1,5 @@
-// src/App.tsx - Enhanced dark mode support
-import React, { useCallback, useRef, useEffect } from 'react';
+// src/App.tsx - Enhanced with toggle for Data Management
+import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
 // Custom hooks
@@ -11,18 +11,23 @@ import useThemeToggle from './hooks/useThemeToggle';
 import DialogueFlow from './components/DialogueFlow';
 import Header from './components/Header';
 import CardSidebar from './components/CardSidebar';
+import AutoSaveIndicator from './components/AutoSaveIndicator';
+import DataActions from './components/DataActions';
 
 // Import global styles
 import './styles/index.css';
 
 /**
- * Main application component with full-screen flow and floating cards
+ * Main application component with auto-save functionality
  */
 const App: React.FC = () => {
   const autoLayoutRef = useRef<(() => void) | null>(null);
   const fitViewRef = useRef<(() => void) | null>(null);
+  
+  // Add state for Data Management visibility
+  const [isDataManagementVisible, setIsDataManagementVisible] = useState<boolean>(false);
 
-  // Use the Dialogue Manager hook
+  // Use the enhanced Dialogue Manager hook with auto-save
   const {
     npcs,
     selectedNpcId,
@@ -40,6 +45,11 @@ const App: React.FC = () => {
     onConnect,
     updateNodePositions,
     updateNodeLayout,
+    // Auto-save related properties
+    isSaving,
+    lastSaved,
+    isLoading,
+    saveImmediately
   } = useDialogueManager();
 
   // Initialize auto-layout trigger function
@@ -74,6 +84,11 @@ const App: React.FC = () => {
 
   // Initialize theme toggle with system preference
   const { isDarkMode, toggleTheme } = useThemeToggle(prefersDarkMode);
+  
+  // Toggle function for Data Management visibility
+  const toggleDataManagement = useCallback(() => {
+    setIsDataManagementVisible(prev => !prev);
+  }, []);
 
   // Listen for system dark mode preference changes
   useEffect(() => {
@@ -100,6 +115,29 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Save data before window unload (when user closes the tab/browser)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isSaving) {
+        // If currently saving, show a confirmation dialog
+        e.preventDefault();
+        e.returnValue = "Changes are being saved. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isSaving]);
+
+  // Handler for when data is imported
+  const handleDataImported = useCallback(() => {
+    // Reload the page to refresh all state
+    window.location.reload();
+  }, []);
+
   // Store autoLayout function reference
   const handleAutoLayoutInitialized = useCallback((layoutFn: () => void) => {
     console.log("AutoLayout function received from DialogueFlow");
@@ -115,6 +153,16 @@ const App: React.FC = () => {
   return (
     // Full-screen container with dark mode class
     <div className={`w-screen h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-dark-surface p-6 rounded-lg shadow-xl flex flex-col items-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Loading your dialogue trees...</p>
+          </div>
+        </div>
+      )}
+
       {/* ReactFlow takes up the entire screen */}
       <ReactFlowProvider>
         <div className="w-full h-full transition-colors duration-300">
@@ -135,7 +183,7 @@ const App: React.FC = () => {
         </div>
       </ReactFlowProvider>
       
-      {/* Floating Header with Theme Toggle */}
+      {/* Floating Header with Theme Toggle and Data Management Toggle */}
       <div className="absolute top-4 right-4 z-30 transition-all duration-300">
         <Header
           isHorizontal={isHorizontal}
@@ -143,6 +191,8 @@ const App: React.FC = () => {
           onFitView={triggerFitView}
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
+          isDataManagementVisible={isDataManagementVisible}
+          onToggleDataManagement={toggleDataManagement}
         />
       </div>
       
@@ -158,6 +208,16 @@ const App: React.FC = () => {
           onAddConversation={addConversation}
         />
       </div>
+
+      {/* Data Management Actions (Export/Import) - Only show when visible */}
+      {isDataManagementVisible && (
+        <div className="absolute top-20 right-4 z-30 transition-opacity duration-300">
+          <DataActions onDataImported={handleDataImported} />
+        </div>
+      )}
+      
+      {/* Auto-save Indicator */}
+      <AutoSaveIndicator isSaving={isSaving || false} lastSaved={lastSaved || null} />
     </div>
   );
 }

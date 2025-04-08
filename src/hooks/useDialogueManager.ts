@@ -1,5 +1,5 @@
 // src/hooks/useDialogueManager.ts
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -25,18 +25,73 @@ import {
   NodePositions,
   UseDialogueManagerReturn
 } from '../types';
+import { loadAllNpcs } from '../services/dialogueService';
+import useAutoSave from './useAutoSave';
 
 type ConversationUpdater = (conv: Conversation) => Conversation;
 
 /**
  * Custom hook to manage NPCs, their conversations, and the active dialogue flow state.
+ * Now with auto-save functionality.
  */
-const useDialogueManager = (): UseDialogueManagerReturn => {
-  const [npcs, setNpcs] = useState<NPC[]>(initialNpcs);
-  const [selectedNpcId, setSelectedNpcId] = useState<string | null>(initialNpcs[0]?.id || null);
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
-    initialNpcs[0]?.conversations[0]?.id || null
-  );
+const useDialogueManager = (): UseDialogueManagerReturn & { 
+  isSaving: boolean; 
+  lastSaved: Date | null;
+  isLoading: boolean;
+} => {
+  // State initialization with loading status
+  const [npcs, setNpcs] = useState<NPC[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [selectedNpcId, setSelectedNpcId] = useState<string | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+
+  // Initialize auto-save hook
+  const { isSaving, lastSaved, saveData, saveImmediately } = useAutoSave(1500); // 1.5 second debounce
+
+  // --- Data Loading ---
+  
+  // Load data from IndexedDB on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        // Load NPCs from IndexedDB (or fallback to initial data)
+        const loadedNpcs = await loadAllNpcs();
+        setNpcs(loadedNpcs);
+        
+        // Select the first NPC and conversation if available
+        if (loadedNpcs.length > 0) {
+          setSelectedNpcId(loadedNpcs[0].id);
+          if (loadedNpcs[0].conversations.length > 0) {
+            setSelectedConversationId(loadedNpcs[0].conversations[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        // Fallback to initial data if loading fails
+        setNpcs(initialNpcs);
+        if (initialNpcs.length > 0) {
+          setSelectedNpcId(initialNpcs[0].id);
+          if (initialNpcs[0].conversations.length > 0) {
+            setSelectedConversationId(initialNpcs[0].conversations[0].id);
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
+
+  // --- Auto-Save Effect ---
+  
+  // Trigger auto-save whenever NPCs data changes
+  useEffect(() => {
+    if (!isLoading && npcs.length > 0) {
+      saveData(npcs);
+    }
+  }, [npcs, isLoading, saveData]);
 
   // --- Data Retrieval ---
 
@@ -175,10 +230,23 @@ const useDialogueManager = (): UseDialogueManagerReturn => {
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      // Prevent connecting a node to itself
+      if (connection.source === connection.target) {
+        console.warn('Cannot connect a node to itself');
+        return;
+      }
+      
       if (!selectedNpcId || !selectedConversationId) return;
+      
+      // Add a timestamp to ensure the edge ID is unique
+      const uniqueConnection = {
+        ...connection,
+        id: `e${connection.source}-${connection.target}-${Date.now()}`
+      };
+      
       updateConversationData(selectedNpcId, selectedConversationId, (conv) => ({
         ...conv,
-        edges: addEdge(connection, conv.edges || []),
+        edges: addEdge(uniqueConnection, conv.edges || []),
       }));
     },
     [selectedNpcId, selectedConversationId, updateConversationData]
@@ -245,6 +313,14 @@ const useDialogueManager = (): UseDialogueManagerReturn => {
     [selectedNpcId, selectedConversationId, updateConversationData]
    );
 
+  // Force an immediate save (e.g., before window unload)
+  const saveImmediatelyHandler = useCallback(() => {
+    if (npcs.length > 0) {
+      return saveImmediately(npcs);
+    }
+    return Promise.resolve();
+  }, [npcs, saveImmediately]);
+
   return {
     npcs,
     selectedNpcId,
@@ -264,6 +340,11 @@ const useDialogueManager = (): UseDialogueManagerReturn => {
     onConnect,
     updateNodePositions,
     updateNodeLayout,
+    // Added auto-save state
+    isSaving,
+    lastSaved,
+    isLoading,
+    saveImmediately: saveImmediatelyHandler,
   };
 };
 

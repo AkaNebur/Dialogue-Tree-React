@@ -229,8 +229,10 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
         };
         console.log('[Connect End] New node object:', newNode);
   
+        // FIX: Create unique edge ID with timestamp to avoid duplicates
+        const uniqueTimestamp = Date.now();
         const newEdge = {
-          id: `e${sourceNodeId}-${newNodeId}`,
+          id: `e${sourceNodeId}-${newNodeId}-${uniqueTimestamp}`,
           source: sourceNodeId,
           target: newNodeId,
           sourceHandle: sourceHandleId,

@@ -1,6 +1,6 @@
 // src/components/Header/index.tsx
 import React, { memo } from 'react';
-import { ArrowDown, ArrowRight, Moon, Sun } from 'lucide-react';
+import { ArrowDown, ArrowRight, Moon, Sun, Database, X } from 'lucide-react';
 
 interface HeaderProps {
   isHorizontal: boolean;
@@ -8,6 +8,8 @@ interface HeaderProps {
   onFitView?: () => void;
   isDarkMode?: boolean;
   onToggleTheme?: () => void;
+  isDataManagementVisible?: boolean;
+  onToggleDataManagement?: () => void;
 }
 
 /**
@@ -18,7 +20,9 @@ const Header: React.FC<HeaderProps> = memo(({
   onToggleLayout,
   onFitView,
   isDarkMode = false,
-  onToggleTheme
+  onToggleTheme,
+  isDataManagementVisible = false,
+  onToggleDataManagement
 }) => {
   // Combined handler to toggle layout and then fit view
   const handleToggleAndFit = () => {
@@ -50,6 +54,16 @@ const Header: React.FC<HeaderProps> = memo(({
           title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
           {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+      )}
+      
+      {onToggleDataManagement && (
+        <button
+          onClick={onToggleDataManagement}
+          className="p-3 text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-md"
+          title={isDataManagementVisible ? 'Hide Data Management' : 'Show Data Management'}
+        >
+          {isDataManagementVisible ? <X size={20} /> : <Database size={20} />}
         </button>
       )}
     </div>

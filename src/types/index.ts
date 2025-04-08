@@ -131,6 +131,11 @@ export interface UseDialogueManagerReturn {
   onConnect: (connection: any) => void;
   updateNodePositions: (positions: NodePositions) => void;
   updateNodeLayout: (isHorizontal: boolean) => void;
+  // New auto-save properties
+  isSaving?: boolean;
+  lastSaved?: Date | null;
+  isLoading?: boolean;
+  saveImmediately?: () => Promise<void>;
 }
 
 export interface UseLayoutToggleReturn {
@@ -146,4 +151,12 @@ export interface UseResizableSidebarReturn {
 
 export interface UseAutoLayoutReturn {
   (): void;
+}
+
+// New auto-save types
+export interface UseAutoSaveReturn {
+  isSaving: boolean;
+  lastSaved: Date | null;
+  saveData: (data: NPC[]) => void;
+  saveImmediately: (data: NPC[]) => Promise<void>;
 }
