@@ -1,13 +1,18 @@
+// src/hooks/useLayoutToggle.ts
 import { useState, useCallback, useEffect } from 'react';
+import { UseLayoutToggleReturn } from '../types';
 
 /**
  * Custom hook to manage layout direction
- * @param {Function} updateNodeLayout - Function to update node layouts
- * @param {Function} triggerAutoLayout - Function to trigger auto layout
- * @returns {Object} Layout state and toggle function
+ * @param updateNodeLayout - Function to update node layouts
+ * @param triggerAutoLayout - Function to trigger auto layout
+ * @returns Layout state and toggle function
  */
-const useLayoutToggle = (updateNodeLayout, triggerAutoLayout) => {
-  const [isHorizontal, setIsHorizontal] = useState(true);
+const useLayoutToggle = (
+  updateNodeLayout: (isHorizontal: boolean) => void,
+  triggerAutoLayout: () => void
+): UseLayoutToggleReturn => {
+  const [isHorizontal, setIsHorizontal] = useState<boolean>(true);
 
   // Toggle layout between horizontal and vertical
   const toggleLayout = useCallback(() => {

@@ -1,10 +1,13 @@
-// src/hooks/useDialogueManager.js
+// src/hooks/useDialogueManager.ts
 import { useState, useCallback, useMemo } from 'react';
 import {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
   Position,
+  Connection,
+  NodeChange,
+  EdgeChange
 } from 'reactflow';
 import {
   initialNpcs,
@@ -14,14 +17,24 @@ import {
   DEFAULT_EMPTY_NODES,
   DEFAULT_EMPTY_EDGES,
 } from '../constants/initialData';
+import { 
+  DialogueNode, 
+  DialogueEdge, 
+  NPC, 
+  Conversation,
+  NodePositions,
+  UseDialogueManagerReturn
+} from '../types';
+
+type ConversationUpdater = (conv: Conversation) => Conversation;
 
 /**
  * Custom hook to manage NPCs, their conversations, and the active dialogue flow state.
  */
-const useDialogueManager = () => {
-  const [npcs, setNpcs] = useState(initialNpcs);
-  const [selectedNpcId, setSelectedNpcId] = useState(initialNpcs[0]?.id || null);
-  const [selectedConversationId, setSelectedConversationId] = useState(
+const useDialogueManager = (): UseDialogueManagerReturn => {
+  const [npcs, setNpcs] = useState<NPC[]>(initialNpcs);
+  const [selectedNpcId, setSelectedNpcId] = useState<string | null>(initialNpcs[0]?.id || null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
     initialNpcs[0]?.conversations[0]?.id || null
   );
 
@@ -49,7 +62,11 @@ const useDialogueManager = () => {
 
   // --- State Update Callbacks ---
 
-  const updateConversationData = useCallback((npcId, conversationId, dataUpdater) => {
+  const updateConversationData = useCallback((
+    npcId: string, 
+    conversationId: string, 
+    dataUpdater: ConversationUpdater
+  ) => {
     setNpcs((currentNpcs) =>
       currentNpcs.map((npc) => {
         if (npc.id === npcId) {
@@ -72,10 +89,10 @@ const useDialogueManager = () => {
 
   // --- NPC Management ---
 
-  const addNpc = useCallback((name) => {
+  const addNpc = useCallback((name: string) => {
     const newNpcId = generateNpcId();
     const newConversationId = generateConversationId();
-    const newNpc = {
+    const newNpc: NPC = {
       id: newNpcId,
       name: name || `New NPC ${newNpcId.split('-')[1]}`,
       conversations: [
@@ -92,7 +109,7 @@ const useDialogueManager = () => {
     setSelectedConversationId(newConversationId);
   }, []);
 
-  const selectNpc = useCallback((npcId) => {
+  const selectNpc = useCallback((npcId: string) => {
     const npc = npcs.find(n => n.id === npcId);
     if (npc) {
         setSelectedNpcId(npcId);
@@ -103,10 +120,10 @@ const useDialogueManager = () => {
 
   // --- Conversation Management ---
 
-  const addConversation = useCallback((npcId, name) => {
+  const addConversation = useCallback((npcId: string, name: string) => {
       if (!npcId) return;
       const newConversationId = generateConversationId();
-      const newConversation = {
+      const newConversation: Conversation = {
           id: newConversationId,
           name: name || `New Conversation ${newConversationId.split('-')[1]}`,
           ...createInitialConversationData(name),
@@ -128,14 +145,14 @@ const useDialogueManager = () => {
 
   }, []); // No dependencies needed here as it uses npcId passed in
 
-  const selectConversation = useCallback((conversationId) => {
+  const selectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);
   }, []);
 
   // --- Active Dialogue Flow Handlers (for the selected conversation) ---
 
   const onNodesChange = useCallback(
-    (changes) => {
+    (changes: NodeChange[]) => {
       if (!selectedNpcId || !selectedConversationId) return;
       updateConversationData(selectedNpcId, selectedConversationId, (conv) => ({
         ...conv,
@@ -146,7 +163,7 @@ const useDialogueManager = () => {
   );
 
   const onEdgesChange = useCallback(
-    (changes) => {
+    (changes: EdgeChange[]) => {
       if (!selectedNpcId || !selectedConversationId) return;
       updateConversationData(selectedNpcId, selectedConversationId, (conv) => ({
         ...conv,
@@ -157,7 +174,7 @@ const useDialogueManager = () => {
   );
 
   const onConnect = useCallback(
-    (connection) => {
+    (connection: Connection) => {
       if (!selectedNpcId || !selectedConversationId) return;
       updateConversationData(selectedNpcId, selectedConversationId, (conv) => ({
         ...conv,
@@ -169,7 +186,7 @@ const useDialogueManager = () => {
 
   // Function to specifically set the nodes (e.g., after adding a node)
   const setNodes = useCallback(
-    (nodesOrUpdater) => {
+    (nodesOrUpdater: DialogueNode[] | ((nodes: DialogueNode[]) => DialogueNode[])) => {
       if (!selectedNpcId || !selectedConversationId) return;
       updateConversationData(selectedNpcId, selectedConversationId, (conv) => {
         const newNodes = typeof nodesOrUpdater === 'function'
@@ -183,7 +200,7 @@ const useDialogueManager = () => {
 
   // Function to specifically set the edges (e.g., after adding a node + edge)
    const setEdges = useCallback(
-    (edgesOrUpdater) => {
+    (edgesOrUpdater: DialogueEdge[] | ((edges: DialogueEdge[]) => DialogueEdge[])) => {
       if (!selectedNpcId || !selectedConversationId) return;
       updateConversationData(selectedNpcId, selectedConversationId, (conv) => {
          const newEdges = typeof edgesOrUpdater === 'function'
@@ -195,10 +212,9 @@ const useDialogueManager = () => {
     [selectedNpcId, selectedConversationId, updateConversationData]
    );
 
-
   // Updates node positions (typically from auto-layout)
   const updateNodePositions = useCallback(
-    (positions) => {
+    (positions: NodePositions) => {
       if (!selectedNpcId || !selectedConversationId) return;
       updateConversationData(selectedNpcId, selectedConversationId, (conv) => ({
         ...conv,
@@ -215,7 +231,7 @@ const useDialogueManager = () => {
 
   // Updates handle positions on nodes based on layout direction
   const updateNodeLayout = useCallback(
-    (isHorizontal) => {
+    (isHorizontal: boolean) => {
        if (!selectedNpcId || !selectedConversationId) return;
        updateConversationData(selectedNpcId, selectedConversationId, (conv) => ({
          ...conv,
@@ -233,12 +249,12 @@ const useDialogueManager = () => {
     npcs,
     selectedNpcId,
     selectedConversationId,
-    selectedNpc,          // Expose derived selected NPC object
-    selectedConversation, // Expose derived selected Conversation object
+    selectedNpc,
+    selectedConversation,
     activeNodes,
     activeEdges,
-    setNodes, // Pass this down for node creation in DialogueFlow
-    setEdges, // Pass this down for edge creation in DialogueFlow
+    setNodes,
+    setEdges,
     addNpc,
     selectNpc,
     addConversation,

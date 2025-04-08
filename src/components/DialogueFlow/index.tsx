@@ -1,4 +1,4 @@
-// src/components/DialogueFlow/index.jsx
+// src/components/DialogueFlow/index.tsx
 import React, { useEffect, memo, useCallback, useRef } from 'react';
 import ReactFlow, {
   MiniMap,
@@ -6,6 +6,12 @@ import ReactFlow, {
   Background,
   useReactFlow,
   Position,
+  Connection,
+  OnConnectStartParams,
+  NodeTypes,
+  OnConnectStart,
+  OnConnectEnd,
+  BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -15,18 +21,26 @@ import useAutoLayout from './useAutoLayout';
 import DialogueNode from './DialogueNode';
 // Centralized ID generator
 import { getNextNodeId } from '../../constants/initialData';
+import { DialogueFlowProps, DialogueNode as DialogueNodeType } from '../../types';
 
 // Define node types used in the flow
-const nodeTypes = {
+const nodeTypes: NodeTypes = {
   custom: DialogueNode,
   input: DialogueNode,
 };
+
+// Type for the connect reference
+interface ConnectingNodeRef {
+  nodeId: string;
+  handleId: string;
+  handleType: string;
+}
 
 /**
  * DialogueFlow Component
  * Renders the React Flow canvas and handles interactions for the *active* dialogue.
  */
-const DialogueFlow = memo(({
+const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
   nodes,
   edges,
   setNodes,
@@ -37,15 +51,15 @@ const DialogueFlow = memo(({
   isHorizontal,
   updateNodePositions,
   onInitialized,
-  onFitViewInitialized, // New prop to pass up the fitView function
-  selectedConversationId, // Receive conversation ID
+  onFitViewInitialized,
+  selectedConversationId,
 }) => {
   const reactFlowInstance = useReactFlow();
-  const connectingNode = useRef(null);
-  const initialLayoutRun = useRef(false);
+  const connectingNode = useRef<ConnectingNodeRef | null>(null);
+  const initialLayoutRun = useRef<boolean>(false);
   const nodesRef = useRef(nodes);
-  const prevConversationIdRef = useRef(selectedConversationId);
-  const prevIsHorizontalRef = useRef(isHorizontal); // Track previous layout direction
+  const prevConversationIdRef = useRef<string | null>(selectedConversationId);
+  const prevIsHorizontalRef = useRef<boolean>(isHorizontal); // Track previous layout direction
 
   // Initialize the auto-layout hook
   const autoLayout = useAutoLayout(
@@ -77,7 +91,7 @@ const DialogueFlow = memo(({
       console.log("[DialogueFlow Effect 1] Passing autoLayout function up.");
       onInitialized(autoLayout);
     }
-  }, [autoLayout, onInitialized]); // Only depends on autoLayout function identity and the callback prop
+  }, [autoLayout, onInitialized]);
 
   // Effect for passing fitView function up to parent
   useEffect(() => {
@@ -95,7 +109,7 @@ const DialogueFlow = memo(({
         prevConversationIdRef.current = selectedConversationId; // Update the ref
     }
     nodesRef.current = nodes; // Keep track of current nodes ref, might be useful
-  }, [selectedConversationId, nodes]); // Run when conversation ID changes, or nodes array changes (to update nodesRef)
+  }, [selectedConversationId, nodes]);
 
   // Effect 2: Handle initial layout and layout changes triggered by `isHorizontal`.
   useEffect(() => {
@@ -140,27 +154,41 @@ const DialogueFlow = memo(({
       }, 50);
       return () => clearTimeout(layoutTimer);
     }
-    // Dependencies: ReactFlow instance, nodes (layout needs current nodes), layout direction, and the layout function itself.
-    // The logic *inside* now prevents unnecessary runs based on nodes/autoLayout ref changes alone after the initial load/direction change.
   }, [reactFlowInstance, nodes, isHorizontal, autoLayout, handleFitView]);
 
 
   // --- Interaction Handlers ---
 
   // Called when dragging starts from a handle. Store source info.
-  const handleConnectStart = useCallback((event, { nodeId, handleId, handleType }) => {
-    connectingNode.current = { nodeId, handleId, handleType };
+  const handleConnectStart: OnConnectStart = useCallback((
+    event, 
+    params
+  ) => {
+    connectingNode.current = { 
+      nodeId: params.nodeId || '', 
+      handleId: params.handleId || '', 
+      handleType: params.handleType || '' 
+    };
     console.log('[Connect Start] Stored connecting node info:', connectingNode.current);
   }, []);
 
   // Called when a connection drag ends. Creates node if dropped on pane.
-  const handleConnectEnd = useCallback(
+  const handleConnectEnd: OnConnectEnd = useCallback(
     (event) => {
       console.log('[Connect End] Triggered.');
       const connectingInfo = connectingNode.current;
 
+      // Early return if event is not a mouse event
+      if (!event || !('clientX' in event) || !('clientY' in event)) {
+        console.log('[Connect End] Not a mouse event, ignoring.');
+        connectingNode.current = null;
+        return;
+      }
+
       // Check if event is defined and has target property
-      const targetIsPane = event?.target?.classList.contains('react-flow__pane');
+      // TypeScript safely checks if target exists and if it has classList
+      const targetElement = event.target as HTMLElement;
+      const targetIsPane = targetElement?.classList?.contains('react-flow__pane');
 
       console.log('[Connect End] Target is pane:', targetIsPane);
       console.log('[Connect End] Connecting node info:', connectingInfo);
@@ -172,9 +200,10 @@ const DialogueFlow = memo(({
         console.log('[Connect End] Conditions met! Creating new node and edge...');
 
         const { nodeId: sourceNodeId, handleId: sourceHandleId } = connectingInfo;
-        // Ensure event is defined before accessing clientX/clientY
-        const clientX = event && ('changedTouches' in event ? event.changedTouches[0]?.clientX : event.clientX);
-        const clientY = event && ('changedTouches' in event ? event.changedTouches[0]?.clientY : event.clientY);
+        
+        // Use actual properties from MouseEvent
+        const clientX = event.clientX;
+        const clientY = event.clientY;
 
         // Check if clientX/clientY are valid numbers before proceeding
         if (typeof clientX !== 'number' || typeof clientY !== 'number') {
@@ -183,20 +212,18 @@ const DialogueFlow = memo(({
             return;
         }
 
-
         const position = reactFlowInstance.screenToFlowPosition({ x: clientX, y: clientY });
         console.log('[Connect End] Calculated new node position:', position);
 
         const newNodeId = getNextNodeId();
-        const newNode = {
+        const newNode: DialogueNodeType = {
           id: newNodeId,
           type: 'custom',
           position,
           data: {
             label: `New Response ${newNodeId}`,
-            className: 'node-more', // <-- Move className inside data
+            className: 'node-more',
           },
-          // className: 'node-more', // Removed from top level
           sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
           targetPosition: isHorizontal ? Position.Left : Position.Top,
         };
@@ -228,7 +255,7 @@ const DialogueFlow = memo(({
       console.log('[Connect End] Clearing connecting node info.');
       connectingNode.current = null;
     },
-    [reactFlowInstance, setNodes, setEdges, isHorizontal] // Added isHorizontal dependency for new node handle positions
+    [reactFlowInstance, setNodes, setEdges, isHorizontal]
   );
 
 
@@ -243,19 +270,13 @@ const DialogueFlow = memo(({
       onConnect={onConnect}
       onConnectEnd={handleConnectEnd}
       nodeTypes={nodeTypes}
-      // We don't set fitView as a prop, but expose it via callback
       attributionPosition="bottom-right"
       className="dialogue-flow-canvas bg-gray-50"
-      // Keep viewport static unless user pans/zooms
-      defaultViewport={{ x: 0, y: 0, zoom: 1 }} // Optional: Set an initial viewport
-      // Prevent zoom/pan if needed (uncomment):
-      // zoomOnScroll={false}
-      // panOnDrag={false}
-      // zoomOnDoubleClick={false}
+      defaultViewport={{ x: 0, y: 0, zoom: 1 }}
     >
       <Controls />
       <MiniMap nodeStrokeWidth={3} zoomable pannable />
-      <Background color="#aaa" gap={16} variant="dots" />
+      <Background color="#aaa" gap={16} variant={BackgroundVariant.Dots} />
     </ReactFlow>
   );
 });

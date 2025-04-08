@@ -1,25 +1,19 @@
-// src/components/Header/index.jsx
+// src/components/Header/index.tsx
 import React, { memo } from 'react';
 import { ArrowDown, ArrowRight } from 'lucide-react';
+import { HeaderProps } from '../../types';
 
 /**
  * Floating layout toggle button
- * 
- * @param {Object} props - Component props
- * @param {boolean} props.isHorizontal - Current layout direction
- * @param {Function} props.onToggleLayout - Layout toggle handler
- * @param {Function} props.onFitView - Function to fit view after layout change
  */
-const Header = memo(({ isHorizontal, onToggleLayout, onFitView }) => {
+const Header: React.FC<HeaderProps> = memo(({ isHorizontal, onToggleLayout, onFitView }) => {
   // Combined handler to toggle layout and then fit view
   const handleToggleAndFit = () => {
     onToggleLayout(); // First toggle the layout
     
-    // We don't need to explicitly call fitView here as it's now 
-    // handled in the layout effect in DialogueFlow, but we could
-    // if we wanted an additional trigger
+    // Only call fitView if provided
     if (onFitView) {
-      // Optional: Add a small delay to ensure layout is applied first
+      // Add a small delay to ensure layout is applied first
       setTimeout(() => {
         onFitView();
       }, 100);

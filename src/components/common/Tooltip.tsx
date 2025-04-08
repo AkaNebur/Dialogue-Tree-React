@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
+import { TooltipProps } from '../../types';
 
 /**
  * Tooltip component for sidebar elements
  */
-const Tooltip = ({ text, children, position = "right" }) => {
-  const [isVisible, setIsVisible] = useState(false);
+const Tooltip: React.FC<TooltipProps> = ({ text, children, position = "right" }) => {
+  const [isVisible, setIsVisible] = useState<boolean>(false);
   
   // Position classes based on the position prop
-  const positionClasses = {
+  const positionClasses: Record<string, string> = {
     right: "left-full ml-2",
     left: "right-full mr-2",
     top: "bottom-full mb-2 left-1/2 transform -translate-x-1/2",

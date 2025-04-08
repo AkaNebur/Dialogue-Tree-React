@@ -1,25 +1,31 @@
+// src/hooks/useResizableSidebar.ts
 import { useState, useCallback, useEffect } from 'react';
+import { UseResizableSidebarReturn } from '../types';
 
 /**
  * Custom hook to manage sidebar resize functionality
- * @param {number} initialWidth - Initial width in pixels
- * @param {number} minWidth - Minimum allowed width
- * @param {number} maxWidth - Maximum allowed width  
- * @returns {Object} - Sidebar width, drag state, and resize handler
+ * @param initialWidth - Initial width in pixels
+ * @param minWidth - Minimum allowed width
+ * @param maxWidth - Maximum allowed width  
+ * @returns Sidebar width, drag state, and resize handler
  */
-const useResizableSidebar = (initialWidth = 400, minWidth = 180, maxWidth = 500) => {
-  const [sidebarWidth, setSidebarWidth] = useState(initialWidth);
-  const [isDragging, setIsDragging] = useState(false);
+const useResizableSidebar = (
+  initialWidth = 400, 
+  minWidth = 180, 
+  maxWidth = 500
+): UseResizableSidebarReturn => {
+  const [sidebarWidth, setSidebarWidth] = useState<number>(initialWidth);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // Start dragging
-  const startResize = useCallback((e) => {
+  const startResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
   }, []);
 
   // Handle mouse movement during drag
   const handleMouseMove = useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       if (!isDragging) return;
       
       const newWidth = e.clientX;
@@ -57,4 +63,4 @@ const useResizableSidebar = (initialWidth = 400, minWidth = 180, maxWidth = 500)
   };
 };
 
-export default useResizableSidebar; 
+export default useResizableSidebar;

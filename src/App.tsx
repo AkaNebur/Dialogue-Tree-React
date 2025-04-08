@@ -1,26 +1,25 @@
-// src/App.jsx
+// src/App.tsx
 import React, { useCallback, useRef } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
 // Custom hooks
-// import useDialogueNodes from './hooks/useDialogueNodes'; // No longer used directly here
-import useDialogueManager from './hooks/useDialogueManager'; // Import the new manager hook
+import useDialogueManager from './hooks/useDialogueManager';
 import useLayoutToggle from './hooks/useLayoutToggle';
 
 // Components
 import DialogueFlow from './components/DialogueFlow';
 import Header from './components/Header';
-import Sidebar from './components/Sidebar'; // Import the Sidebar
+import Sidebar from './components/Sidebar';
 
-// Import only global styles
+// Import global styles
 import './styles/index.css';
 
 /**
  * Main application component
  */
-function App() {
-  const autoLayoutRef = useRef(null);
-  const fitViewRef = useRef(null); // Add reference to store fitView function
+const App: React.FC = () => {
+  const autoLayoutRef = useRef<(() => void) | null>(null);
+  const fitViewRef = useRef<(() => void) | null>(null); // Reference to store fitView function
 
   // Use the new Dialogue Manager hook
   const {
@@ -70,7 +69,7 @@ function App() {
 
   // Store autoLayout function reference from DialogueFlow
   // This function will be based on the *currently active* nodes/edges
-  const handleAutoLayoutInitialized = useCallback((layoutFn) => {
+  const handleAutoLayoutInitialized = useCallback((layoutFn: () => void) => {
     console.log("AutoLayout function received from DialogueFlow");
     autoLayoutRef.current = layoutFn;
     // Optionally run initial layout once the function is received
@@ -78,7 +77,7 @@ function App() {
   }, []);
 
   // Store fitView function reference from DialogueFlow
-  const handleFitViewInitialized = useCallback((fitViewFn) => {
+  const handleFitViewInitialized = useCallback((fitViewFn: () => void) => {
     console.log("FitView function received from DialogueFlow");
     fitViewRef.current = fitViewFn;
     // Note: We don't call it immediately here

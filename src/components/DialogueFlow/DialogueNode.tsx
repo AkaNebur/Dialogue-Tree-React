@@ -1,24 +1,17 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
+import { DialogueNodeProps } from '../../types';
 
 /**
  * Custom node component for dialogue tree
- *
- * @param {Object} props - Component props
- * @param {Object} props.data - Node data including label and className
- * @param {boolean} props.isConnectable - Whether node is connectable
- * @param {string} props.id - Node id (passed by React Flow)
- * @param {Object} props.sourcePosition - Position for source handle
- * @param {Object} props.targetPosition - Position for target handle
- * @param {string} props.type - Node type (e.g., 'input', 'custom')
  */
-const DialogueNode = ({
+const DialogueNode: React.FC<DialogueNodeProps> = ({
   data,
   isConnectable,
   sourcePosition = Position.Right,
   targetPosition = Position.Left,
   id,
-  type, // Added type prop to check if it's a start node
+  type, // Used to check if it's a start node
 }) => {
   // Access className from the data object
   const nodeClassName = data.className || ''; // Use data.className, provide fallback

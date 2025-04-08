@@ -1,10 +1,11 @@
 import React, { useState, memo } from 'react';
 import useResizableSidebar from '../../hooks/useResizableSidebar';
+import { SidebarProps, NPC } from '../../types';
 
 /**
  * Enhanced Sidebar for managing NPCs and Conversations with resizable width
  */
-const Sidebar = memo(({
+const Sidebar: React.FC<SidebarProps> = memo(({
   npcs,
   selectedNpcId,
   selectedConversationId,
@@ -13,15 +14,15 @@ const Sidebar = memo(({
   onSelectConversation,
   onAddConversation,
 }) => {
-  const [newNpcName, setNewNpcName] = useState('');
-  const [newConversationName, setNewConversationName] = useState('');
-  const [isAddingNpc, setIsAddingNpc] = useState(false);
-  const [isAddingConversation, setIsAddingConversation] = useState(false);
+  const [newNpcName, setNewNpcName] = useState<string>('');
+  const [newConversationName, setNewConversationName] = useState<string>('');
+  const [isAddingNpc, setIsAddingNpc] = useState<boolean>(false);
+  const [isAddingConversation, setIsAddingConversation] = useState<boolean>(false);
   
   // Use our custom hook for resizable sidebar
   const { sidebarWidth, isDragging, startResize } = useResizableSidebar(256); // 256px = 16rem (w-64)
 
-  const handleAddNpc = (e) => {
+  const handleAddNpc = (e: React.FormEvent) => {
     e.preventDefault();
     if (newNpcName.trim()) {
       onAddNpc(newNpcName.trim());
@@ -30,7 +31,7 @@ const Sidebar = memo(({
     }
   };
 
-  const handleAddConversation = (e) => {
+  const handleAddConversation = (e: React.FormEvent) => {
     e.preventDefault();
     if (newConversationName.trim() && selectedNpcId) {
       onAddConversation(selectedNpcId, newConversationName.trim());
