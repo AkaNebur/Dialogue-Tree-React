@@ -1,9 +1,12 @@
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
+  important: true, // Makes Tailwind styles override React Flow defaults
   theme: {
     extend: {
       colors: {
@@ -29,6 +32,15 @@ export default {
           secondaryText: '#B0B0B0',
           border: '#444444',
           accent: '#888888',
+        },
+        // New dark theme colors
+        dark: {
+          bg: '#1a1a1a',
+          surface: '#2d2d2d',
+          border: '#3d3d3d',
+          text: '#e0e0e0',
+          accent: '#3367d9',
+          panel: 'rgba(45, 45, 45, 0.85)'
         }
       }
     },

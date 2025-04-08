@@ -1,10 +1,11 @@
-// src/App.tsx - Updated for full-screen flow with floating cards
-import React, { useCallback, useRef } from 'react';
+// src/App.tsx - Enhanced dark mode support
+import React, { useCallback, useRef, useEffect } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
 // Custom hooks
 import useDialogueManager from './hooks/useDialogueManager';
 import useLayoutToggle from './hooks/useLayoutToggle';
+import useThemeToggle from './hooks/useThemeToggle';
 
 // Components
 import DialogueFlow from './components/DialogueFlow';
@@ -67,24 +68,56 @@ const App: React.FC = () => {
     triggerAutoLayout
   );
 
-  // Store autoLayout function reference from DialogueFlow
+  // Check system preference for dark mode
+  const prefersDarkMode = window.matchMedia && 
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  // Initialize theme toggle with system preference
+  const { isDarkMode, toggleTheme } = useThemeToggle(prefersDarkMode);
+
+  // Listen for system dark mode preference changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      // Update your theme state based on system preference
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+    
+    // Modern browsers
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } 
+    // Fallback for older browsers
+    else {
+      mediaQuery.addListener(handleChange as any);
+      return () => mediaQuery.removeListener(handleChange as any);
+    }
+  }, []);
+
+  // Store autoLayout function reference
   const handleAutoLayoutInitialized = useCallback((layoutFn: () => void) => {
     console.log("AutoLayout function received from DialogueFlow");
     autoLayoutRef.current = layoutFn;
   }, []);
 
-  // Store fitView function reference from DialogueFlow
+  // Store fitView function reference
   const handleFitViewInitialized = useCallback((fitViewFn: () => void) => {
     console.log("FitView function received from DialogueFlow");
     fitViewRef.current = fitViewFn;
   }, []);
 
   return (
-    // Full-screen container
-    <div className="w-screen h-screen relative overflow-hidden">
+    // Full-screen container with dark mode class
+    <div className={`w-screen h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
       {/* ReactFlow takes up the entire screen */}
       <ReactFlowProvider>
-        <div className="w-full h-full">
+        <div className="w-full h-full transition-colors duration-300">
           <DialogueFlow
             nodes={activeNodes}
             edges={activeEdges}
@@ -102,17 +135,19 @@ const App: React.FC = () => {
         </div>
       </ReactFlowProvider>
       
-      {/* Floating Header */}
-      <div className="absolute top-4 right-4 z-30">
+      {/* Floating Header with Theme Toggle */}
+      <div className="absolute top-4 right-4 z-30 transition-all duration-300">
         <Header
           isHorizontal={isHorizontal}
           onToggleLayout={toggleLayout}
           onFitView={triggerFitView}
+          isDarkMode={isDarkMode}
+          onToggleTheme={toggleTheme}
         />
       </div>
       
       {/* Floating Card Sidebar */}
-      <div className="absolute top-4 left-4 z-20">
+      <div className="absolute top-4 left-4 z-20 transition-all duration-300">
         <CardSidebar
           npcs={npcs}
           selectedNpcId={selectedNpcId}

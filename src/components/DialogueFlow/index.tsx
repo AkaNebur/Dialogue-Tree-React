@@ -177,44 +177,44 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
     (event) => {
       console.log('[Connect End] Triggered.');
       const connectingInfo = connectingNode.current;
-
+  
       // Early return if event is not a mouse event
       if (!event || !('clientX' in event) || !('clientY' in event)) {
         console.log('[Connect End] Not a mouse event, ignoring.');
         connectingNode.current = null;
         return;
       }
-
+  
       // Check if event is defined and has target property
       // TypeScript safely checks if target exists and if it has classList
       const targetElement = event.target as HTMLElement;
       const targetIsPane = targetElement?.classList?.contains('react-flow__pane');
-
+  
       console.log('[Connect End] Target is pane:', targetIsPane);
       console.log('[Connect End] Connecting node info:', connectingInfo);
       console.log('[Connect End] Instance available:', !!reactFlowInstance);
       console.log('[Connect End] setNodes available:', typeof setNodes === 'function');
       console.log('[Connect End] setEdges available:', typeof setEdges === 'function');
-
+  
       if (targetIsPane && connectingInfo && reactFlowInstance && setNodes && setEdges) {
         console.log('[Connect End] Conditions met! Creating new node and edge...');
-
+  
         const { nodeId: sourceNodeId, handleId: sourceHandleId } = connectingInfo;
         
         // Use actual properties from MouseEvent
         const clientX = event.clientX;
         const clientY = event.clientY;
-
+  
         // Check if clientX/clientY are valid numbers before proceeding
         if (typeof clientX !== 'number' || typeof clientY !== 'number') {
             console.error('[Connect End] Could not determine drop coordinates.');
             connectingNode.current = null;
             return;
         }
-
+  
         const position = reactFlowInstance.screenToFlowPosition({ x: clientX, y: clientY });
         console.log('[Connect End] Calculated new node position:', position);
-
+  
         const newNodeId = getNextNodeId();
         const newNode: DialogueNodeType = {
           id: newNodeId,
@@ -222,13 +222,13 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
           position,
           data: {
             label: `New Response ${newNodeId}`,
-            className: 'node-more',
+            className: 'node-more', // This ensures the node has the 'node-more' class
           },
           sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
           targetPosition: isHorizontal ? Position.Left : Position.Top,
         };
         console.log('[Connect End] New node object:', newNode);
-
+  
         const newEdge = {
           id: `e${sourceNodeId}-${newNodeId}`,
           source: sourceNodeId,
@@ -236,13 +236,13 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
           sourceHandle: sourceHandleId,
         };
         console.log('[Connect End] New edge object:', newEdge);
-
+  
         console.log('[Connect End] Calling setNodes (via prop)...');
         setNodes((nds) => [...nds, newNode]);
         console.log('[Connect End] Calling setEdges (via prop)...');
         setEdges((eds) => [...eds, newEdge]);
         console.log('[Connect End] State update calls dispatched.');
-
+  
       } else {
          if (!targetIsPane) console.log('[Connect End] Target was not the pane.');
          if (!connectingInfo) console.log('[Connect End] No connecting node info stored.');
@@ -251,7 +251,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
          if (typeof setEdges !== 'function') console.log('[Connect End] setEdges function not available.');
          console.log('[Connect End] Conditions NOT met. Node not created.');
       }
-
+  
       console.log('[Connect End] Clearing connecting node info.');
       connectingNode.current = null;
     },
@@ -271,14 +271,26 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
       onConnectEnd={handleConnectEnd}
       nodeTypes={nodeTypes}
       attributionPosition="bottom-right"
-      className="dialogue-flow-canvas bg-gray-50"
-      defaultViewport={{ x: 0, y: 0, zoom: 0.8 }} // Set default zoom level lower
-      minZoom={0.3} // Allow zooming out further
-      maxZoom={1.5} // Limit maximum zoom
+      className="dialogue-flow-canvas transition-colors duration-300" // Added transition for smooth theme switching
+      defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+      minZoom={0.3}
+      maxZoom={1.5}
+      proOptions={{ hideAttribution: true }}
     >
-      <Controls />
-      <MiniMap nodeStrokeWidth={3} zoomable pannable />
-      <Background color="#aaa" gap={16} variant={BackgroundVariant.Dots} />
+      <Controls className="transition-all duration-300 shadow-lg" />
+      <MiniMap 
+        nodeStrokeWidth={3} 
+        zoomable 
+        pannable 
+        className="transition-all duration-300 shadow-lg"
+        nodeBorderRadius={4} // Added radius for nicer appearance
+      />
+      <Background 
+        color="#aaa" 
+        gap={16} 
+        variant={BackgroundVariant.Dots} 
+        className="transition-all duration-300"
+      />
     </ReactFlow>
   );
 });

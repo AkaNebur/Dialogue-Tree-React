@@ -44,10 +44,10 @@ const CardSidebar: React.FC<SidebarProps> = ({
   return (
     <div className="flex flex-col gap-4">
       {/* NPCs Card Container */}
-      <div className="rounded-2xl shadow-lg bg-blue-50 p-4 border-2 border-blue-100 w-72">
+      <div className="card-sidebar rounded-2xl shadow-lg bg-blue-50 p-4 border-2 border-blue-100 w-72">
         {/* NPCs Header */}
         <div className="flex justify-between items-center mb-4 px-2">
-          <h2 className="text-2xl font-semibold text-blue-600">NPCs</h2>
+          <h2 className="card-sidebar-title text-2xl font-semibold text-blue-600">NPCs</h2>
           <button 
             onClick={() => setIsAddingNpc(!isAddingNpc)}
             className="bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full p-2 transition-colors shadow-md"
@@ -90,7 +90,7 @@ const CardSidebar: React.FC<SidebarProps> = ({
           {npcs.map((npc) => (
             <div
               key={npc.id}
-              className={`relative rounded-xl border-2 shadow-md ${
+              className={`card-item relative rounded-xl border-2 shadow-md ${
                 npc.id === selectedNpcId 
                   ? 'bg-blue-100 border-blue-300' 
                   : 'bg-white border-blue-100 hover:border-blue-300'
@@ -102,13 +102,13 @@ const CardSidebar: React.FC<SidebarProps> = ({
               >
                 {npc.name}
               </button>
-              <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 p-1 rounded-full">
+              <button className="card-icon absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 p-1 rounded-full">
                 <Settings size={18} />
               </button>
             </div>
           ))}
           {npcs.length === 0 && !isAddingNpc && (
-            <div className="text-blue-400 text-sm italic text-center py-6 bg-white bg-opacity-50 rounded-xl">
+            <div className="card-text text-blue-400 text-sm italic text-center py-6 bg-white bg-opacity-50 rounded-xl">
               No NPCs created yet
             </div>
           )}
@@ -116,10 +116,10 @@ const CardSidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Dialogues Card Container */}
-      <div className="rounded-2xl shadow-lg bg-blue-50 p-4 border-2 border-blue-100 w-72 max-h-96">
+      <div className="card-sidebar rounded-2xl shadow-lg bg-blue-50 p-4 border-2 border-blue-100 w-72 max-h-96">
         {/* Dialogues Header */}
         <div className="flex justify-between items-center mb-4 px-2">
-          <h2 className="text-2xl font-semibold text-blue-600">Dialogues</h2>
+          <h2 className="card-sidebar-title text-2xl font-semibold text-blue-600">Dialogues</h2>
           {selectedNpc && (
             <button 
               onClick={() => setIsAddingConversation(!isAddingConversation)}
@@ -171,7 +171,7 @@ const CardSidebar: React.FC<SidebarProps> = ({
               {selectedNpc.conversations.map((conv) => (
                 <div
                   key={conv.id}
-                  className={`relative rounded-xl border-2 shadow-md ${
+                  className={`card-item relative rounded-xl border-2 shadow-md ${
                     conv.id === selectedConversationId 
                       ? 'bg-blue-100 border-blue-300' 
                       : 'bg-white border-blue-100 hover:border-blue-300'
@@ -183,21 +183,21 @@ const CardSidebar: React.FC<SidebarProps> = ({
                   >
                     {conv.name}
                   </button>
-                  <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 p-1 rounded-full">
+                  <button className="card-icon absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 p-1 rounded-full">
                     <Settings size={18} />
                   </button>
                 </div>
               ))}
               {selectedNpc.conversations.length === 0 && !isAddingConversation && (
-                <div className="text-blue-400 text-sm italic text-center py-6 bg-white bg-opacity-50 rounded-xl">
+                <div className="card-text text-blue-400 text-sm italic text-center py-6 bg-white bg-opacity-50 rounded-xl">
                   No dialogues created yet
                 </div>
               )}
             </div>
           </>
         ) : (
-          <div className="bg-white bg-opacity-70 rounded-xl p-6 text-center border-2 border-blue-50 shadow-inner">
-            <p className="text-blue-400 text-md">Select an NPC to see dialogues</p>
+          <div className="card-item bg-white bg-opacity-70 rounded-xl p-6 text-center border-2 border-blue-50 shadow-inner">
+            <p className="card-text text-blue-400 text-md">Select an NPC to see dialogues</p>
           </div>
         )}
       </div>
