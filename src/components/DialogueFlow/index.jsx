@@ -37,6 +37,7 @@ const DialogueFlow = memo(({
   isHorizontal,
   updateNodePositions,
   onInitialized,
+  onFitViewInitialized, // New prop to pass up the fitView function
   selectedConversationId, // Receive conversation ID
 }) => {
   const reactFlowInstance = useReactFlow();
@@ -54,6 +55,20 @@ const DialogueFlow = memo(({
     updateNodePositions
   );
 
+  // Create fitView function that can be passed up to parent
+  const handleFitView = useCallback(() => {
+    if (reactFlowInstance) {
+      console.log("[DialogueFlow] Executing fitView.");
+      reactFlowInstance.fitView({
+        padding: 0.2,
+        duration: 300,
+        includeHiddenNodes: false
+      });
+    } else {
+      console.warn("[DialogueFlow] Cannot fitView: reactFlowInstance not available.");
+    }
+  }, [reactFlowInstance]);
+
   // --- Effects ---
 
   // Effect 1: Pass layout function up when it's ready or changes identity.
@@ -63,6 +78,14 @@ const DialogueFlow = memo(({
       onInitialized(autoLayout);
     }
   }, [autoLayout, onInitialized]); // Only depends on autoLayout function identity and the callback prop
+
+  // Effect for passing fitView function up to parent
+  useEffect(() => {
+    if (onFitViewInitialized && reactFlowInstance) {
+      console.log("[DialogueFlow] Passing fitView function up.");
+      onFitViewInitialized(handleFitView);
+    }
+  }, [handleFitView, onFitViewInitialized, reactFlowInstance]);
 
   // Effect 1.5: Reset initial layout flag when the selected conversation changes.
   useEffect(() => {
@@ -100,6 +123,11 @@ const DialogueFlow = memo(({
         console.log("[Layout Effect 2] Executing autoLayout()...");
         autoLayout(); // Execute the layout function
 
+        // Add fitView after layout is applied
+        setTimeout(() => {
+          handleFitView();
+        }, 50);
+
         // Set flag after layout is applied (since fitView is removed)
         // Only mark as run if it was the initial run for this specific conversation ID
         if (conversationJustLoaded) {
@@ -114,7 +142,7 @@ const DialogueFlow = memo(({
     }
     // Dependencies: ReactFlow instance, nodes (layout needs current nodes), layout direction, and the layout function itself.
     // The logic *inside* now prevents unnecessary runs based on nodes/autoLayout ref changes alone after the initial load/direction change.
-  }, [reactFlowInstance, nodes, isHorizontal, autoLayout]);
+  }, [reactFlowInstance, nodes, isHorizontal, autoLayout, handleFitView]);
 
 
   // --- Interaction Handlers ---
@@ -215,9 +243,7 @@ const DialogueFlow = memo(({
       onConnect={onConnect}
       onConnectEnd={handleConnectEnd}
       nodeTypes={nodeTypes}
-      // **REMOVED fitView prop**
-      // fitView
-      // fitViewOptions={{ padding: 0.2, duration: 300 }} // Also remove options if fitView is removed
+      // We don't set fitView as a prop, but expose it via callback
       attributionPosition="bottom-right"
       className="dialogue-flow-canvas bg-gray-50"
       // Keep viewport static unless user pans/zooms

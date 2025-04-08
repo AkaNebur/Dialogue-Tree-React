@@ -20,6 +20,7 @@ import './styles/index.css';
  */
 function App() {
   const autoLayoutRef = useRef(null);
+  const fitViewRef = useRef(null); // Add reference to store fitView function
 
   // Use the new Dialogue Manager hook
   const {
@@ -51,6 +52,16 @@ function App() {
     }
   }, []); // Dependency array is empty as autoLayoutRef.current is mutable
 
+  // Initialize fitView trigger function
+  const triggerFitView = useCallback(() => {
+    if (fitViewRef.current) {
+      console.log("Triggering fitView from App");
+      fitViewRef.current(); // Call the fitView function received from DialogueFlow
+    } else {
+      console.warn("FitView function not yet available.");
+    }
+  }, []); // No dependencies needed as fitViewRef.current is mutable
+
   // Initialize layout toggle (targets active nodes via manager)
   const { isHorizontal, toggleLayout } = useLayoutToggle(
     updateNodeLayout,   // This now updates the layout for the *active* conversation
@@ -60,10 +71,17 @@ function App() {
   // Store autoLayout function reference from DialogueFlow
   // This function will be based on the *currently active* nodes/edges
   const handleAutoLayoutInitialized = useCallback((layoutFn) => {
-     console.log("AutoLayout function received from DialogueFlow");
+    console.log("AutoLayout function received from DialogueFlow");
     autoLayoutRef.current = layoutFn;
     // Optionally run initial layout once the function is received
     // triggerAutoLayout(); // Might cause issues if called too early, DialogueFlow's effect is better
+  }, []);
+
+  // Store fitView function reference from DialogueFlow
+  const handleFitViewInitialized = useCallback((fitViewFn) => {
+    console.log("FitView function received from DialogueFlow");
+    fitViewRef.current = fitViewFn;
+    // Note: We don't call it immediately here
   }, []);
 
 
@@ -87,7 +105,7 @@ function App() {
         <Header
           isHorizontal={isHorizontal}
           onToggleLayout={toggleLayout}
-          // Removed onAutoLayout prop from Header, trigger happens on toggle
+          onFitView={triggerFitView} // Pass the fitView trigger function to Header
         />
 
         {/* ReactFlow provider */}
@@ -104,6 +122,7 @@ function App() {
             isHorizontal={isHorizontal}
             updateNodePositions={updateNodePositions} // Pass the position updater
             onInitialized={handleAutoLayoutInitialized} // Receive the layout function
+            onFitViewInitialized={handleFitViewInitialized} // Receive the fitView function
             selectedConversationId={selectedConversationId} // Pass down the ID
           />
         </ReactFlowProvider>
