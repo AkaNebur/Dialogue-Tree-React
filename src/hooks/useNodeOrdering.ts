@@ -34,7 +34,7 @@ const useNodeOrdering = (): UseNodeOrderingReturn => {
   const applyNodeOrdering = useCallback((
     nodes: DialogueNode[],
     nodeLevels: NodeLevels,
-    nodeRelationships: NodeRelationships,
+    _nodeRelationships: NodeRelationships,
     isHorizontal: boolean
   ): NodePositions => {
     const { 

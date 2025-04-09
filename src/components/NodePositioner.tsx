@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { ArrowDown, ArrowRight, GitBranch } from 'lucide-react';
+import { PositioningMode } from '../utils/nodePositioning';
 
-// Types of positioning layouts - simplified to only include needed options
-type PositioningMode = 'horizontal' | 'vertical' | 'dagre';
 
 interface NodePositionerProps {
   onApplyLayout: (mode: PositioningMode, options: any) => void;
@@ -91,20 +90,6 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
     }
   }, [onApplyLayout, spacing, onFitView]);
 
-  // Handler for button selection (simplified for remaining layout options)
-  const handleSelectMode = useCallback((mode) => {
-    setPositioningMode(mode);
-    
-    // Use the dedicated direction handler for horizontal/vertical
-    if (mode === 'horizontal') {
-      handleSetDirection(true);
-    } else if (mode === 'vertical') {
-      handleSetDirection(false);
-    } else if (mode === 'dagre') {
-      applyDagreLayout();
-    }
-  }, [handleSetDirection, applyDagreLayout]);
-
   // Layout options with icons and descriptions - simplified to only include needed options
   const layoutOptions = [
     { 
@@ -154,12 +139,12 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
         className="p-3 text-white bg-yellow-600 hover:bg-yellow-700 rounded-full transition-colors shadow-md flex items-center justify-center"
         title={`Node positioning: ${currentOption?.label || 'Layout Options'}`}
       >
-        {currentOption?.icon || <Grid size={20} />}
+        {currentOption?.icon || <GitBranch size={20} />}
       </button>
 
-      {/* Dropdown panel with layout options */}
+      {/* Dropdown panel with layout options - CENTERED with the button */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-dark-surface rounded-lg shadow-lg overflow-hidden z-50">
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white dark:bg-dark-surface rounded-lg shadow-lg overflow-hidden z-50">
           <div className="p-2 border-b border-gray-200 dark:border-dark-border">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Position {nodeCount} Nodes
@@ -207,7 +192,7 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
             >
               <GitBranch size={18} />
               <div className="text-left">
-                <div className="font-medium">Smart Layout (Dagre)</div>
+                <div className="font-medium">Smart Layout</div>
                 <div className="text-xs text-yellow-600 dark:text-yellow-300">Intelligently organizes nodes with minimal crossings</div>
               </div>
             </button>

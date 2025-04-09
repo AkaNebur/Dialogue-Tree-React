@@ -2,7 +2,7 @@
 import { NodePositions, DialogueNode, DialogueEdge } from '../types';
 
 // Type for layout options
-export type PositioningMode = 'grid' | 'cascade' | 'horizontal' | 'vertical' | 'radial' | 'compact' | 'custom';
+export type PositioningMode = 'grid' | 'cascade' | 'horizontal' | 'vertical' | 'radial' | 'compact' | 'custom' | 'dagre';
 
 interface LayoutOptions {
   spacing?: number;
@@ -68,6 +68,12 @@ export const calculateNodePositions = (
       
     case 'vertical':
       positionNodesInLevels(nodesCopy, rootNodeIds, edges, positions, spacing, false);
+      break;
+      
+    case 'dagre':
+      // For 'dagre' layout, use a compact layout as a fallback
+      // Note: Actual dagre implementation might be handled in the React Flow component
+      positionNodesCompactly(nodesCopy, edges, positions, spacing);
       break;
       
     case 'horizontal':
@@ -215,9 +221,6 @@ const positionNodesRadially = (
     levelGroups.get(level)!.push(nodeId);
   });
   
-  // Get max level for calculating radius
-  const maxLevel = Math.max(...Array.from(nodeLevels.values()));
-  
   // Position each node based on its level and position within level
   levelGroups.forEach((nodeIds, level) => {
     const levelRadius = (level === 0) ? 0 : (level * radius);
@@ -292,7 +295,7 @@ const positionNodesInLevels = (
  */
 const positionNodesCompactly = (
   nodes: DialogueNode[],
-  edges: DialogueEdge[],
+  _edges: DialogueEdge[],
   positions: NodePositions,
   spacing: number
 ) => {

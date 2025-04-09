@@ -79,13 +79,13 @@ export const calculateDagreLayout = (
  * Apply additional ordering strategies to Dagre-calculated positions
  * 
  * @param positions - The positions calculated by Dagre
- * @param nodes - The original nodes
+ * @param _nodes - The original nodes
  * @param strategy - The ordering strategy to apply
  * @returns Updated node positions
  */
 export const applyOrderingStrategy = (
   positions: NodePositions,
-  nodes: DialogueNode[],
+  _nodes: DialogueNode[],
   strategy: string
 ): NodePositions => {
   // For most strategies, Dagre's layout is sufficient

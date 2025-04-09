@@ -61,9 +61,7 @@ const App: React.FC = () => {
     // Auto-save related properties
     isSaving,
     lastSaved,
-    isLoading,
-    saveImmediately
-  } = useDialogueManager();
+    isLoading  } = useDialogueManager();
 
   // Initialize auto-layout trigger function
   const triggerAutoLayout = useCallback(() => {
@@ -106,7 +104,7 @@ const App: React.FC = () => {
   }, []);
 
   // Apply custom node positioning with Dagre integration
-  const applyNodePositioning = useCallback((mode: PositioningMode, options = {}) => {
+  const applyNodePositioning = useCallback((mode: PositioningMode, options: { spacing?: number; gridColumns?: number } = {}) => {
     console.log(`Applying ${mode} positioning with options:`, options);
     
     // Update positioning mode state

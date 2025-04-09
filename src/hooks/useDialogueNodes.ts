@@ -10,14 +10,12 @@ import {
   NodeChange,
   EdgeChange,
   Connection,
-  XYPosition,
 } from 'reactflow';
 // Import the types and initial data
-import { DialogueNode, DialogueEdge, NodePositions } from '../types';
+import { NodePositions } from '../types';
 import { 
   DEFAULT_EMPTY_NODES, 
   DEFAULT_EMPTY_EDGES, 
-  getNextNodeId 
 } from '../constants/initialData';
 
 /**
@@ -30,8 +28,8 @@ import {
 const useDialogueNodes = () => {
   // Use react-flow hooks to manage state for the initial nodes/edges
   // Let TypeScript infer the types from the initial values
-  const [nodes, setNodes, onNodesChangeDirect] = useNodesState(DEFAULT_EMPTY_NODES);
-  const [edges, setEdges, onEdgesChangeDirect] = useEdgesState(DEFAULT_EMPTY_EDGES);
+  const [nodes, setNodes] = useNodesState(DEFAULT_EMPTY_NODES);
+  const [edges, setEdges] = useEdgesState(DEFAULT_EMPTY_EDGES);
 
   // React Flow's built-in handlers for node/edge changes
   const onNodesChange = useCallback(
