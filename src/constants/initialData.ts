@@ -17,14 +17,61 @@ export const LAYOUT_CONSTANTS: LayoutConstants = {
   INITIAL_Y_OFFSET: 50,
 };
 
-// --- Helper for unique IDs (replace with UUID in a real app) ---
+// Define window properties for TypeScript
+declare global {
+  interface Window {
+    getNextNodeId?: () => string;
+    generateNpcId?: () => string;
+    generateConversationId?: () => string;
+  }
+}
+
+// --- Helper for unique IDs (these will be replaced by IdManager) ---
 let npcIdCounter = 1;
 let convIdCounter = 1;
-let nodeIdCounter = 10; // Keep node IDs separate
+let nodeIdCounter = 10;
 
-export const generateNpcId = (): string => `npc-${npcIdCounter++}`;
-export const generateConversationId = (): string => `conv-${convIdCounter++}`;
-export const getNextNodeId = (): string => `${nodeIdCounter++}`; // Reuse existing node ID generator
+/**
+ * Generate a unique NPC ID
+ * Will use the window method if defined (from IdManager)
+ */
+export const generateNpcId = (): string => {
+  // Use the window method if available (from IdManager)
+  if (typeof window !== 'undefined' && window.generateNpcId) {
+    return window.generateNpcId();
+  }
+  
+  // Fallback to local counter
+  return `npc-${npcIdCounter++}`;
+};
+
+/**
+ * Generate a unique conversation ID
+ * Will use the window method if defined (from IdManager)
+ */
+export const generateConversationId = (): string => {
+  // Use the window method if available (from IdManager)
+  if (typeof window !== 'undefined' && window.generateConversationId) {
+    return window.generateConversationId();
+  }
+  
+  // Fallback to local counter
+  return `conv-${convIdCounter++}`;
+};
+
+/**
+ * Get the next unique node ID
+ * Will use the window method if defined (from IdManager)
+ */
+export const getNextNodeId = (): string => {
+  // Use the window method if available (from IdManager)
+  if (typeof window !== 'undefined' && window.getNextNodeId) {
+    return window.getNextNodeId();
+  }
+  
+  // Fallback to local counter
+  return nodeIdCounter.toString();
+};
 
 // --- Function to create initial nodes/edges for a new conversation ---
 export const createInitialConversationData = (conversationName = "New Conversation"): Pick<Conversation, 'nodes' | 'edges'> => {
@@ -47,9 +94,7 @@ export const createInitialConversationData = (conversationName = "New Conversati
   };
 };
 
-
 // --- Original Initial Nodes/Edges (for the first conversation) ---
-// Modified to keep only the start module
 const initialConv1Nodes: DialogueNode[] = [
   {
     id: '1', 
@@ -62,9 +107,7 @@ const initialConv1Nodes: DialogueNode[] = [
 ];
 
 // --- Edges remain the same ---
-// Modified to remove all edges since we only have the start node
 const initialConv1Edges: DialogueEdge[] = [];
-
 
 // --- New Initial Data Structure ---
 export const initialNpcs: NPC[] = [

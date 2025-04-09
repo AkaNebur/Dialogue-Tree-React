@@ -1,4 +1,4 @@
-// src/App.tsx - Updated with Dagre layout integration
+// src/App.tsx - Updated with IdManager integration
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
@@ -14,17 +14,18 @@ import NodePositioner from './components/NodePositioner';
 import CardSidebar from './components/CardSidebar';
 import AutoSaveIndicator from './components/AutoSaveIndicator';
 import DataActions from './components/DataActions';
+import IdManagerInitializer from './components/IdManagerInitializer'; // Import the ID manager initializer
+import IdDebugger from './components/IdDebugger'; // Optional: Import ID debugger
 
 // Utilities
 import { calculateNodePositions, PositioningMode } from './utils/nodePositioning';
-// Import new Dagre utility
 import { calculateDagreLayout } from './utils/dagreLayout';
 
 // Import global styles
 import './styles/index.css';
 
 /**
- * Main application component with merged layout controls and Dagre integration
+ * Main application component with IdManager integration
  */
 const App: React.FC = () => {
   const autoLayoutRef = useRef<(() => void) | null>(null);
@@ -61,7 +62,8 @@ const App: React.FC = () => {
     // Auto-save related properties
     isSaving,
     lastSaved,
-    isLoading  } = useDialogueManager();
+    isLoading
+  } = useDialogueManager();
 
   // Initialize auto-layout trigger function
   const triggerAutoLayout = useCallback(() => {
@@ -236,6 +238,12 @@ const App: React.FC = () => {
   return (
     // Full-screen container with dark mode class
     <div className={`w-screen h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
+      {/* Add IdManagerInitializer to handle ID persistence */}
+      <IdManagerInitializer />
+      
+      {/* Optional: Add ID Debugger for development and troubleshooting */}
+      {process.env.NODE_ENV === 'development' && <IdDebugger />}
+      
       {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
