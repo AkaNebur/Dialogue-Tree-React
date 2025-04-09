@@ -1,4 +1,4 @@
-// src/App.tsx - Updated to use the refactored layout hook
+// src/App.tsx - Updated with Dagre layout integration
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
@@ -17,12 +17,14 @@ import DataActions from './components/DataActions';
 
 // Utilities
 import { calculateNodePositions, PositioningMode } from './utils/nodePositioning';
+// Import new Dagre utility
+import { calculateDagreLayout } from './utils/dagreLayout';
 
 // Import global styles
 import './styles/index.css';
 
 /**
- * Main application component with merged layout controls
+ * Main application component with merged layout controls and Dagre integration
  */
 const App: React.FC = () => {
   const autoLayoutRef = useRef<(() => void) | null>(null);
@@ -103,7 +105,7 @@ const App: React.FC = () => {
     setIsDataManagementVisible(prev => !prev);
   }, []);
 
-  // Apply custom node positioning
+  // Apply custom node positioning with Dagre integration
   const applyNodePositioning = useCallback((mode: PositioningMode, options = {}) => {
     console.log(`Applying ${mode} positioning with options:`, options);
     
@@ -116,8 +118,28 @@ const App: React.FC = () => {
       setLayout(true);
     } else if (mode === 'vertical' && isHorizontal) {
       setLayout(false);
+    } else if (mode === 'dagre') {
+      // Use Dagre layout algorithm
+      console.log("Applying Dagre layout...");
+      const direction = isHorizontal ? 'LR' : 'TB';
+      const spacing = options.spacing || layoutOptions.spacing;
+      
+      const newPositions = calculateDagreLayout(
+        activeNodes,
+        activeEdges,
+        direction,
+        spacing
+      );
+      
+      // Update node positions
+      updateNodePositions(newPositions);
+      
+      // Fit view after positioning
+      setTimeout(() => {
+        triggerFitView();
+      }, 100);
     } else {
-      // For other layout modes, calculate new positions for the nodes
+      // For other layout modes, use the existing node positioning utility
       const newPositions = calculateNodePositions(
         activeNodes,
         activeEdges,

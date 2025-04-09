@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ArrowUpDown, Grid, AlignJustify, AlignLeft, CornerUpLeft, CornerDownRight, ChevronsUp, ChevronsDown, ArrowDown, ArrowRight } from 'lucide-react';
+import { ArrowUpDown, Grid, AlignJustify, AlignLeft, CornerUpLeft, CornerDownRight, ChevronsUp, ChevronsDown, ArrowDown, ArrowRight, GitBranch } from 'lucide-react';
 
 // Types of positioning layouts
-type PositioningMode = 'grid' | 'cascade' | 'horizontal' | 'vertical' | 'radial' | 'compact' | 'custom';
+type PositioningMode = 'grid' | 'cascade' | 'horizontal' | 'vertical' | 'radial' | 'compact' | 'custom' | 'dagre';
 
 interface NodePositionerProps {
   onApplyLayout: (mode: PositioningMode, options: any) => void;
@@ -17,6 +17,7 @@ interface NodePositionerProps {
 
 /**
  * Node Positioning component with integrated layout direction controls
+ * Now with Dagre layout support
  */
 const NodePositioner: React.FC<NodePositionerProps> = ({ 
   onApplyLayout, 
@@ -76,6 +77,20 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
     }
   }, [isHorizontal, handleDirectionToggle, setLayout, onFitView]);
 
+  // Handler for direct Dagre layout application
+  const applyDagreLayout = useCallback(() => {
+    setPositioningMode('dagre');
+    onApplyLayout('dagre', { spacing });
+    setIsOpen(false);
+    
+    // Fit view after applying layout
+    if (onFitView) {
+      setTimeout(() => {
+        onFitView();
+      }, 100);
+    }
+  }, [onApplyLayout, spacing, onFitView]);
+
   // Handler for button selection
   const handleSelectMode = useCallback((mode) => {
     setPositioningMode(mode);
@@ -85,8 +100,10 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
       handleSetDirection(true);
     } else if (mode === 'vertical') {
       handleSetDirection(false);
+    } else if (mode === 'dagre') {
+      applyDagreLayout();
     }
-  }, [handleSetDirection]);
+  }, [handleSetDirection, applyDagreLayout]);
 
   // Layout options with icons and descriptions
   const layoutOptions = [
@@ -105,6 +122,15 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
       description: 'Arrange nodes in vertical columns',
       isDirectionOption: true,
       active: !isHorizontal
+    },
+    // Add Dagre as a primary layout option
+    { 
+      mode: 'dagre', 
+      icon: <GitBranch size={18} />, 
+      label: 'Smart Layout', 
+      description: 'Optimized node positioning with Dagre',
+      isDirectionOption: false,
+      highlight: true
     },
     { 
       mode: 'grid', 
@@ -138,12 +164,15 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
 
   // Find current option for the button display
   const currentOption = layoutOptions.find(opt => {
+    if (positioningMode === 'dagre') {
+      return opt.mode === 'dagre';
+    }
     if (opt.isDirectionOption) {
       return (opt.mode === 'horizontal' && isHorizontal) || 
              (opt.mode === 'vertical' && !isHorizontal);
     }
     return opt.mode === positioningMode;
-  });
+  }) || layoutOptions[0];
 
   return (
     <div className="relative">
@@ -196,28 +225,46 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
             </div>
           </div>
 
+          {/* Featured Dagre Layout Button */}
+          <div className="p-2 border-b border-gray-200 dark:border-dark-border">
+            <button
+              onClick={applyDagreLayout}
+              className="w-full py-3 px-4 flex items-center gap-2 bg-yellow-50 hover:bg-yellow-100 
+                        dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 
+                        rounded-md border border-yellow-200 dark:border-yellow-800/50 transition-colors"
+            >
+              <GitBranch size={18} />
+              <div className="text-left">
+                <div className="font-medium">Smart Layout (Dagre)</div>
+                <div className="text-xs text-yellow-600 dark:text-yellow-300">Intelligently organizes nodes with minimal crossings</div>
+              </div>
+            </button>
+          </div>
+
           {/* Layout options */}
           <div className="p-1 max-h-64 overflow-y-auto">
             <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 px-3 py-1 uppercase">
-              Layout Patterns
+              Other Layout Patterns
             </h4>
-            {layoutOptions.filter(opt => !opt.isDirectionOption).map(option => (
-              <button
-                key={option.mode}
-                onClick={() => handleSelectMode(option.mode)}
-                className={`w-full flex items-center px-3 py-2 text-sm rounded-md ${
-                  positioningMode === option.mode && !option.isDirectionOption
-                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg'
-                }`}
-              >
-                <span className="mr-2">{option.icon}</span>
-                <div className="text-left">
-                  <div className="font-medium">{option.label}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">{option.description}</div>
-                </div>
-              </button>
-            ))}
+            {layoutOptions
+              .filter(opt => !opt.isDirectionOption && opt.mode !== 'dagre')
+              .map(option => (
+                <button
+                  key={option.mode}
+                  onClick={() => handleSelectMode(option.mode)}
+                  className={`w-full flex items-center px-3 py-2 text-sm rounded-md ${
+                    positioningMode === option.mode
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg'
+                  }`}
+                >
+                  <span className="mr-2">{option.icon}</span>
+                  <div className="text-left">
+                    <div className="font-medium">{option.label}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{option.description}</div>
+                  </div>
+                </button>
+              ))}
           </div>
 
           {/* Layout settings */}
