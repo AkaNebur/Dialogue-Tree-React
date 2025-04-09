@@ -16,7 +16,7 @@ interface NodePositionerProps {
 
 /**
  * Node Positioning component with integrated layout direction controls
- * Now with Dagre layout support
+ * Updated with consistent styling matching the CardSidebar
  */
 const NodePositioner: React.FC<NodePositionerProps> = ({ 
   onApplyLayout, 
@@ -30,7 +30,6 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
   const [positioningMode, setPositioningMode] = useState(currentLayout);
   const [isOpen, setIsOpen] = useState(false);
   const [spacing, setSpacing] = useState(150);
-  // Grid columns no longer needed as grid layout option is removed
 
   useEffect(() => {
     setPositioningMode(currentLayout);
@@ -144,16 +143,16 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
 
       {/* Dropdown panel with layout options - CENTERED with the button */}
       {isOpen && (
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white dark:bg-dark-surface rounded-lg shadow-lg overflow-hidden z-50">
-          <div className="p-2 border-b border-gray-200 dark:border-dark-border">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white dark:bg-dark-surface rounded-2xl shadow-lg overflow-hidden z-50 border-2 border-blue-100 dark:border-dark-border transition-colors duration-300">
+          <div className="p-4 border-b border-gray-200 dark:border-dark-border">
+            <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300">
               Position {nodeCount} Nodes
             </h3>
           </div>
 
           {/* Section: Flow Direction */}
-          <div className="p-2 border-b border-gray-200 dark:border-dark-border">
-            <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase">
+          <div className="p-4 border-b border-gray-200 dark:border-dark-border">
+            <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
               Direction
             </h4>
             <div className="flex gap-2">
@@ -183,12 +182,12 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
           </div>
 
           {/* Featured Dagre Layout Button */}
-          <div className="p-2 border-b border-gray-200 dark:border-dark-border">
+          <div className="p-4 border-b border-gray-200 dark:border-dark-border">
             <button
               onClick={applyDagreLayout}
               className="w-full py-3 px-4 flex items-center gap-2 bg-yellow-50 hover:bg-yellow-100 
-                        dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 
-                        rounded-md border border-yellow-200 dark:border-yellow-800/50 transition-colors"
+                      dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 
+                      rounded-md transition-colors"
             >
               <GitBranch size={18} />
               <div className="text-left">
@@ -199,9 +198,9 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
           </div>
 
           {/* Layout settings */}
-          <div className="p-3 border-t border-gray-200 dark:border-dark-border">
-            <div className="mb-2">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <div className="p-4 border-t border-gray-200 dark:border-dark-border">
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Node Spacing
               </label>
               <div className="flex items-center">
@@ -217,11 +216,9 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
               </div>
             </div>
 
-            {/* Grid columns control removed as grid layout is no longer an option */}
-
             <button
               onClick={applyLayout}
-              className="w-full mt-2 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md transition-colors text-sm font-medium"
+              className="w-full mt-3 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md transition-colors text-sm font-medium shadow-md"
             >
               Apply Layout
             </button>
