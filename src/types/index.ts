@@ -150,6 +150,8 @@ export interface UseDialogueManagerReturn {
 export interface UseLayoutToggleReturn {
   isHorizontal: boolean;
   toggleLayout: () => void;
+  setLayout: (horizontal: boolean) => void;
+  direction: 'horizontal' | 'vertical';
 }
 
 export interface UseResizableSidebarReturn {

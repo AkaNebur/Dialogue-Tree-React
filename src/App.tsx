@@ -1,4 +1,4 @@
-// src/App.tsx - Updated to integrate layout controls into NodePositioner
+// src/App.tsx - Updated to use the refactored layout hook
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
@@ -10,7 +10,7 @@ import useThemeToggle from './hooks/useThemeToggle';
 // Components
 import DialogueFlow from './components/DialogueFlow';
 import Header from './components/Header';
-import NodePositioner from './components/NodePositioner'; // Enhanced component
+import NodePositioner from './components/NodePositioner';
 import CardSidebar from './components/CardSidebar';
 import AutoSaveIndicator from './components/AutoSaveIndicator';
 import DataActions from './components/DataActions';
@@ -83,10 +83,12 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Initialize layout toggle
-  const { isHorizontal, toggleLayout } = useLayoutToggle(
+  // Initialize layout toggle with refactored hook
+  const { isHorizontal, toggleLayout, setLayout, direction } = useLayoutToggle(
     updateNodeLayout,
-    triggerAutoLayout
+    triggerAutoLayout,
+    true,  // Default to horizontal initially
+    true   // Save preference in localStorage
   );
 
   // Check system preference for dark mode
@@ -109,22 +111,37 @@ const App: React.FC = () => {
     setPositioningMode(mode);
     setLayoutOptions(prev => ({ ...prev, ...options }));
     
-    // Calculate new positions for the nodes
-    const newPositions = calculateNodePositions(
-      activeNodes,
-      activeEdges,
-      mode,
-      { ...layoutOptions, ...options }
-    );
-    
-    // Update node positions
-    updateNodePositions(newPositions);
-    
-    // Fit view after positioning
-    setTimeout(() => {
-      triggerFitView();
-    }, 100);
-  }, [activeNodes, activeEdges, updateNodePositions, triggerFitView, layoutOptions]);
+    // Update layout direction if using horizontal/vertical mode
+    if (mode === 'horizontal' && !isHorizontal) {
+      setLayout(true);
+    } else if (mode === 'vertical' && isHorizontal) {
+      setLayout(false);
+    } else {
+      // For other layout modes, calculate new positions for the nodes
+      const newPositions = calculateNodePositions(
+        activeNodes,
+        activeEdges,
+        mode,
+        { ...layoutOptions, ...options }
+      );
+      
+      // Update node positions
+      updateNodePositions(newPositions);
+      
+      // Fit view after positioning
+      setTimeout(() => {
+        triggerFitView();
+      }, 100);
+    }
+  }, [
+    activeNodes, 
+    activeEdges, 
+    updateNodePositions, 
+    triggerFitView, 
+    layoutOptions, 
+    isHorizontal, 
+    setLayout
+  ]);
 
   // Listen for system dark mode preference changes
   useEffect(() => {
@@ -186,6 +203,16 @@ const App: React.FC = () => {
     fitViewRef.current = fitViewFn;
   }, []);
 
+  // Update positioning mode when direction changes
+  useEffect(() => {
+    // Update positioning mode based on current direction
+    if (direction === 'horizontal' && positioningMode === 'vertical') {
+      setPositioningMode('horizontal');
+    } else if (direction === 'vertical' && positioningMode === 'horizontal') {
+      setPositioningMode('vertical');
+    }
+  }, [direction, positioningMode]);
+
   return (
     // Full-screen container with dark mode class
     <div className={`w-screen h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
@@ -226,9 +253,10 @@ const App: React.FC = () => {
           onApplyLayout={applyNodePositioning}
           currentLayout={positioningMode}
           nodeCount={activeNodes.length}
-          isHorizontal={isHorizontal} // Pass isHorizontal state
-          onToggleDirection={toggleLayout} // Pass toggle function
-          onFitView={triggerFitView} // Pass fit view function
+          isHorizontal={isHorizontal}
+          onToggleDirection={toggleLayout}
+          onFitView={triggerFitView}
+          setLayout={setLayout} // Pass the new direct layout setter
         />
         
         {/* Updated Header component (without layout toggle) */}

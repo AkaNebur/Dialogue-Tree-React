@@ -4,13 +4,28 @@ import { ArrowUpDown, Grid, AlignJustify, AlignLeft, CornerUpLeft, CornerDownRig
 // Types of positioning layouts
 type PositioningMode = 'grid' | 'cascade' | 'horizontal' | 'vertical' | 'radial' | 'compact' | 'custom';
 
-const NodePositioner = ({ 
+interface NodePositionerProps {
+  onApplyLayout: (mode: PositioningMode, options: any) => void;
+  currentLayout?: PositioningMode;
+  nodeCount?: number;
+  isHorizontal: boolean;
+  onToggleDirection: () => void;
+  onFitView?: () => void;
+  // Optional: For direct layout setting from refactored hook
+  setLayout?: (horizontal: boolean) => void;
+}
+
+/**
+ * Node Positioning component with integrated layout direction controls
+ */
+const NodePositioner: React.FC<NodePositionerProps> = ({ 
   onApplyLayout, 
   currentLayout = 'horizontal', 
   nodeCount = 0,
-  isHorizontal, // Added prop to know current direction state
-  onToggleDirection, // Added prop for direction toggle function
-  onFitView // Added prop for fit view function
+  isHorizontal,
+  onToggleDirection,
+  onFitView,
+  setLayout // Optional from refactored hook
 }) => {
   const [positioningMode, setPositioningMode] = useState(currentLayout);
   const [isOpen, setIsOpen] = useState(false);
@@ -42,19 +57,36 @@ const NodePositioner = ({
     }
   }, [onToggleDirection, onFitView]);
 
+  // Handler for direct layout setting when available
+  const handleSetDirection = useCallback((horizontal: boolean) => {
+    // Use the new setLayout if available, otherwise fall back to toggle
+    if (setLayout) {
+      setLayout(horizontal);
+      
+      // Fit view after toggle with a slight delay
+      if (onFitView) {
+        setTimeout(() => {
+          onFitView();
+        }, 100);
+      }
+      setIsOpen(false);
+    } else if (horizontal !== isHorizontal) {
+      // Only toggle if we need to change the direction
+      handleDirectionToggle();
+    }
+  }, [isHorizontal, handleDirectionToggle, setLayout, onFitView]);
+
   // Handler for button selection
   const handleSelectMode = useCallback((mode) => {
     setPositioningMode(mode);
     
-    // Special case for horizontal/vertical toggle
-    const isDirectionChange = 
-      (mode === 'horizontal' && !isHorizontal) || 
-      (mode === 'vertical' && isHorizontal);
-    
-    if (isDirectionChange) {
-      handleDirectionToggle();
+    // Use the dedicated direction handler for horizontal/vertical
+    if (mode === 'horizontal') {
+      handleSetDirection(true);
+    } else if (mode === 'vertical') {
+      handleSetDirection(false);
     }
-  }, [isHorizontal, handleDirectionToggle]);
+  }, [handleSetDirection]);
 
   // Layout options with icons and descriptions
   const layoutOptions = [
@@ -140,7 +172,7 @@ const NodePositioner = ({
             </h4>
             <div className="flex gap-2">
               <button
-                onClick={() => handleSelectMode('horizontal')}
+                onClick={() => handleSetDirection(true)}
                 className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm ${
                   isHorizontal
                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
@@ -151,7 +183,7 @@ const NodePositioner = ({
                 <span>Horizontal</span>
               </button>
               <button
-                onClick={() => handleSelectMode('vertical')}
+                onClick={() => handleSetDirection(false)}
                 className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm ${
                   !isHorizontal
                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
