@@ -1,12 +1,12 @@
 // src/components/DialogueFlow/DialogueNode.tsx
-import React, { memo } from 'react';
+import React from 'react';
 import { Handle, Position } from 'reactflow';
 import { DialogueNodeProps } from '../../types';
 
 /**
  * Custom node component for dialogue tree with better dark mode support
  */
-const DialogueNode: React.FC<DialogueNodeProps> = ({
+const DialogueNodeComponent: React.FC<DialogueNodeProps> = ({
   data,
   isConnectable,
   sourcePosition = Position.Right,
@@ -48,4 +48,7 @@ const DialogueNode: React.FC<DialogueNodeProps> = ({
   );
 };
 
-export default memo(DialogueNode);
+// Use React.memo after the component is defined to avoid circular reference
+const DialogueNode = React.memo(DialogueNodeComponent);
+
+export default DialogueNode;

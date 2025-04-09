@@ -1,4 +1,4 @@
-// src/components/DialogueFlow/index.tsx
+// src/components/DialogueFlow/index.tsx - Updated with ordering strategy
 import React, { useEffect, memo, useCallback, useRef } from 'react';
 import ReactFlow, {
   MiniMap,
@@ -13,13 +13,14 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-// Internal hook for layout logic
-import useAutoLayout from './useAutoLayout';
+// Import the fixed hook from hooks folder (not local)
+import useAutoLayout from '../../hooks/useAutoLayout';
 // Custom node component
 import DialogueNode from './DialogueNode';
 // Centralized ID generator
 import { getNextNodeId } from '../../constants/initialData';
 import { DialogueFlowProps, DialogueNode as DialogueNodeType } from '../../types';
+import { OrderingStrategy } from '../Header/OrderSelector';
 
 // Define node types used in the flow
 const nodeTypes: NodeTypes = {
@@ -47,6 +48,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
   onEdgesChange,
   onConnect,
   isHorizontal,
+  orderingStrategy = 'default', // New prop for ordering strategy
   updateNodePositions,
   onInitialized,
   onFitViewInitialized,
@@ -57,13 +59,15 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
   const initialLayoutRun = useRef<boolean>(false);
   const nodesRef = useRef(nodes);
   const prevConversationIdRef = useRef<string | null>(selectedConversationId);
-  const prevIsHorizontalRef = useRef<boolean>(isHorizontal); // Track previous layout direction
+  const prevIsHorizontalRef = useRef<boolean>(isHorizontal);
+  const prevOrderingStrategyRef = useRef<OrderingStrategy>(orderingStrategy);
 
-  // Initialize the auto-layout hook
+  // Initialize the auto-layout hook with ordering strategy
   const autoLayout = useAutoLayout(
     nodes,
     edges,
     isHorizontal,
+    orderingStrategy, // Pass ordering strategy
     updateNodePositions
   );
 
@@ -111,7 +115,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
     nodesRef.current = nodes; // Keep track of current nodes ref, might be useful
   }, [selectedConversationId, nodes]);
 
-  // Effect 2: Handle initial layout and layout changes triggered by `isHorizontal`.
+  // Effect 2: Handle initial layout and layout changes triggered by layout direction or ordering strategy
   useEffect(() => {
     if (!reactFlowInstance || typeof autoLayout !== 'function' || nodes.length === 0) {
       console.log(`[Layout Effect 2] Skipping: Instance=${!!reactFlowInstance}, LayoutFunc=${typeof autoLayout === 'function'}, Nodes=${nodes.length}`);
@@ -120,6 +124,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
 
     const conversationJustLoaded = !initialLayoutRun.current; // True if initial layout hasn't run for this conversation
     const layoutDirectionChanged = prevIsHorizontalRef.current !== isHorizontal; // True if layout toggled
+    const orderingStrategyChanged = prevOrderingStrategyRef.current !== orderingStrategy; // True if ordering strategy changed
 
     let shouldRunLayout = false;
     if (conversationJustLoaded) {
@@ -128,10 +133,13 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
     } else if (layoutDirectionChanged) {
       console.log("[Layout Effect 2] Layout direction changed, running layout again.");
       shouldRunLayout = true;
+    } else if (orderingStrategyChanged) {
+      console.log("[Layout Effect 2] Ordering strategy changed, running layout again.");
+      shouldRunLayout = true;
     }
 
     if (shouldRunLayout) {
-      console.log("[Layout Effect 2] Scheduling layout (initial or direction change)...");
+      console.log("[Layout Effect 2] Scheduling layout...");
       // Use timeout to allow DOM updates before layout
       const layoutTimer = setTimeout(() => {
         console.log("[Layout Effect 2] Executing autoLayout()...");
@@ -142,20 +150,19 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
           handleFitView();
         }, 50);
 
-        // Set flag after layout is applied (since fitView is removed)
-        // Only mark as run if it was the initial run for this specific conversation ID
+        // Set flag after layout is applied
         if (conversationJustLoaded) {
             initialLayoutRun.current = true;
             console.log("[Layout Effect 2] Marked initialLayoutRun as true (after layout).");
         }
-        // Update the ref for tracking layout direction changes AFTER this run
+        // Update the refs for tracking changes AFTER this run
         prevIsHorizontalRef.current = isHorizontal;
+        prevOrderingStrategyRef.current = orderingStrategy;
 
       }, 50);
       return () => clearTimeout(layoutTimer);
     }
-  }, [reactFlowInstance, nodes, isHorizontal, autoLayout, handleFitView]);
-
+  }, [reactFlowInstance, nodes, isHorizontal, orderingStrategy, autoLayout, handleFitView]);
 
   // --- Interaction Handlers ---
 

@@ -1,5 +1,6 @@
 // src/types/index.ts
 import { Node, Edge, Position, XYPosition } from 'reactflow';
+import { OrderingStrategy } from '../components/Header/OrderSelector.tsx';
 
 // Node dimensions and layout constants
 export interface NodeDimensions {
@@ -79,6 +80,13 @@ export interface HeaderProps {
   isHorizontal: boolean;
   onToggleLayout: () => void;
   onFitView?: () => void;
+  isDarkMode?: boolean;
+  onToggleTheme?: () => void;
+  isDataManagementVisible?: boolean;
+  onToggleDataManagement?: () => void;
+  // New prop for node ordering
+  orderingStrategy?: OrderingStrategy;
+  onOrderChange?: (strategy: OrderingStrategy) => void;
 }
 
 export interface DialogueFlowProps {
@@ -90,6 +98,7 @@ export interface DialogueFlowProps {
   onEdgesChange: (changes: any[]) => void;
   onConnect: (connection: any) => void;
   isHorizontal: boolean;
+  orderingStrategy?: OrderingStrategy; // New prop for node ordering
   updateNodePositions: (positions: NodePositions) => void;
   onInitialized: (layoutFn: () => void) => void;
   onFitViewInitialized: (fitViewFn: () => void) => void;
@@ -131,7 +140,7 @@ export interface UseDialogueManagerReturn {
   onConnect: (connection: any) => void;
   updateNodePositions: (positions: NodePositions) => void;
   updateNodeLayout: (isHorizontal: boolean) => void;
-  // New auto-save properties
+  // Auto-save properties
   isSaving?: boolean;
   lastSaved?: Date | null;
   isLoading?: boolean;
@@ -153,10 +162,22 @@ export interface UseAutoLayoutReturn {
   (): void;
 }
 
-// New auto-save types
+// Auto-save types
 export interface UseAutoSaveReturn {
   isSaving: boolean;
   lastSaved: Date | null;
   saveData: (data: NPC[]) => void;
   saveImmediately: (data: NPC[]) => Promise<void>;
+}
+
+// Node ordering hook return type
+export interface UseNodeOrderingReturn {
+  orderingStrategy: OrderingStrategy;
+  changeOrderingStrategy: (strategy: OrderingStrategy) => void;
+  applyNodeOrdering: (
+    nodes: DialogueNode[], 
+    nodeLevels: NodeLevels, 
+    nodeRelationships: NodeRelationships,
+    isHorizontal: boolean
+  ) => NodePositions;
 }

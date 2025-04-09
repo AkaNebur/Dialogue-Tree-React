@@ -1,52 +1,41 @@
-// src/components/Header/index.tsx
+// src/components/Header/index.tsx - Removed layout toggle button
 import React, { memo } from 'react';
-import { ArrowDown, ArrowRight, Moon, Sun, Database, X } from 'lucide-react';
+import { Moon, Sun, Database, X } from 'lucide-react';
+import OrderSelector, { OrderingStrategy } from './OrderSelector.tsx';
 
 interface HeaderProps {
-  isHorizontal: boolean;
-  onToggleLayout: () => void;
-  onFitView?: () => void;
   isDarkMode?: boolean;
   onToggleTheme?: () => void;
   isDataManagementVisible?: boolean;
   onToggleDataManagement?: () => void;
+  // Node ordering props
+  orderingStrategy?: OrderingStrategy;
+  onOrderChange?: (strategy: OrderingStrategy) => void;
 }
 
 /**
- * Floating layout toggle button and theme toggle
+ * Floating header with theme toggle and data management
+ * Layout toggle has been moved to NodePositioner
  */
 const Header: React.FC<HeaderProps> = memo(({
-  isHorizontal,
-  onToggleLayout,
-  onFitView,
   isDarkMode = false,
   onToggleTheme,
   isDataManagementVisible = false,
-  onToggleDataManagement
+  onToggleDataManagement,
+  orderingStrategy = 'default',
+  onOrderChange
 }) => {
-  // Combined handler to toggle layout and then fit view
-  const handleToggleAndFit = () => {
-    onToggleLayout(); // First toggle the layout
-    
-    // Only call fitView if provided
-    if (onFitView) {
-      // Add a small delay to ensure layout is applied first
-      setTimeout(() => {
-        onFitView();
-      }, 100);
-    }
-  };
-
   return (
     <div className="flex space-x-3">
-      <button
-        onClick={handleToggleAndFit}
-        className="p-3 text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors shadow-md"
-        title={isHorizontal ? 'Switch to Vertical Layout' : 'Switch to Horizontal Layout'}
-      >
-        {isHorizontal ? <ArrowDown size={20} /> : <ArrowRight size={20} />}
-      </button>
+      {/* Node ordering selector */}
+      {onOrderChange && (
+        <OrderSelector 
+          currentStrategy={orderingStrategy} 
+          onOrderChange={onOrderChange} 
+        />
+      )}
       
+      {/* Theme toggle button */}
       {onToggleTheme && (
         <button
           onClick={onToggleTheme}
@@ -57,6 +46,7 @@ const Header: React.FC<HeaderProps> = memo(({
         </button>
       )}
       
+      {/* Data management toggle button */}
       {onToggleDataManagement && (
         <button
           onClick={onToggleDataManagement}

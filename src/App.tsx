@@ -1,4 +1,4 @@
-// src/App.tsx - Enhanced with toggle for Data Management
+// src/App.tsx - Updated to integrate layout controls into NodePositioner
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
@@ -10,15 +10,19 @@ import useThemeToggle from './hooks/useThemeToggle';
 // Components
 import DialogueFlow from './components/DialogueFlow';
 import Header from './components/Header';
+import NodePositioner from './components/NodePositioner'; // Enhanced component
 import CardSidebar from './components/CardSidebar';
 import AutoSaveIndicator from './components/AutoSaveIndicator';
 import DataActions from './components/DataActions';
+
+// Utilities
+import { calculateNodePositions, PositioningMode } from './utils/nodePositioning';
 
 // Import global styles
 import './styles/index.css';
 
 /**
- * Main application component with auto-save functionality
+ * Main application component with merged layout controls
  */
 const App: React.FC = () => {
   const autoLayoutRef = useRef<(() => void) | null>(null);
@@ -26,6 +30,13 @@ const App: React.FC = () => {
   
   // Add state for Data Management visibility
   const [isDataManagementVisible, setIsDataManagementVisible] = useState<boolean>(false);
+  
+  // Add state for node positioning
+  const [positioningMode, setPositioningMode] = useState<PositioningMode>('horizontal');
+  const [layoutOptions, setLayoutOptions] = useState({
+    spacing: 150,
+    gridColumns: 3
+  });
 
   // Use the enhanced Dialogue Manager hook with auto-save
   const {
@@ -89,6 +100,31 @@ const App: React.FC = () => {
   const toggleDataManagement = useCallback(() => {
     setIsDataManagementVisible(prev => !prev);
   }, []);
+
+  // Apply custom node positioning
+  const applyNodePositioning = useCallback((mode: PositioningMode, options = {}) => {
+    console.log(`Applying ${mode} positioning with options:`, options);
+    
+    // Update positioning mode state
+    setPositioningMode(mode);
+    setLayoutOptions(prev => ({ ...prev, ...options }));
+    
+    // Calculate new positions for the nodes
+    const newPositions = calculateNodePositions(
+      activeNodes,
+      activeEdges,
+      mode,
+      { ...layoutOptions, ...options }
+    );
+    
+    // Update node positions
+    updateNodePositions(newPositions);
+    
+    // Fit view after positioning
+    setTimeout(() => {
+      triggerFitView();
+    }, 100);
+  }, [activeNodes, activeEdges, updateNodePositions, triggerFitView, layoutOptions]);
 
   // Listen for system dark mode preference changes
   useEffect(() => {
@@ -183,12 +219,20 @@ const App: React.FC = () => {
         </div>
       </ReactFlowProvider>
       
-      {/* Floating Header with Theme Toggle and Data Management Toggle */}
-      <div className="absolute top-4 right-4 z-30 transition-all duration-300">
+      {/* Floating Header with Layout Controls - Now integrated */}
+      <div className="absolute top-4 right-4 z-30 flex space-x-3 transition-all duration-300">
+        {/* Enhanced Node Positioner component with direction toggle */}
+        <NodePositioner
+          onApplyLayout={applyNodePositioning}
+          currentLayout={positioningMode}
+          nodeCount={activeNodes.length}
+          isHorizontal={isHorizontal} // Pass isHorizontal state
+          onToggleDirection={toggleLayout} // Pass toggle function
+          onFitView={triggerFitView} // Pass fit view function
+        />
+        
+        {/* Updated Header component (without layout toggle) */}
         <Header
-          isHorizontal={isHorizontal}
-          onToggleLayout={toggleLayout}
-          onFitView={triggerFitView}
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
           isDataManagementVisible={isDataManagementVisible}
@@ -220,6 +264,6 @@ const App: React.FC = () => {
       <AutoSaveIndicator isSaving={isSaving || false} lastSaved={lastSaved || null} />
     </div>
   );
-}
+};
 
 export default App;
