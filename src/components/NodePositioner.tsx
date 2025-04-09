@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ArrowUpDown, Grid, AlignJustify, AlignLeft, CornerUpLeft, CornerDownRight, ChevronsUp, ChevronsDown, ArrowDown, ArrowRight, GitBranch } from 'lucide-react';
+import { ArrowDown, ArrowRight, GitBranch } from 'lucide-react';
 
-// Types of positioning layouts
-type PositioningMode = 'grid' | 'cascade' | 'horizontal' | 'vertical' | 'radial' | 'compact' | 'custom' | 'dagre';
+// Types of positioning layouts - simplified to only include needed options
+type PositioningMode = 'horizontal' | 'vertical' | 'dagre';
 
 interface NodePositionerProps {
   onApplyLayout: (mode: PositioningMode, options: any) => void;
@@ -31,17 +31,17 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
   const [positioningMode, setPositioningMode] = useState(currentLayout);
   const [isOpen, setIsOpen] = useState(false);
   const [spacing, setSpacing] = useState(150);
-  const [gridColumns, setGridColumns] = useState(3);
+  // Grid columns no longer needed as grid layout option is removed
 
   useEffect(() => {
     setPositioningMode(currentLayout);
   }, [currentLayout]);
 
-  // Standard layout application
+  // Standard layout application (simplified)
   const applyLayout = useCallback(() => {
-    onApplyLayout(positioningMode, { spacing, gridColumns });
+    onApplyLayout(positioningMode, { spacing });
     setIsOpen(false);
-  }, [positioningMode, onApplyLayout, spacing, gridColumns]);
+  }, [positioningMode, onApplyLayout, spacing]);
 
   // Special handler for direction toggle (horizontal/vertical)
   const handleDirectionToggle = useCallback(() => {
@@ -91,7 +91,7 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
     }
   }, [onApplyLayout, spacing, onFitView]);
 
-  // Handler for button selection
+  // Handler for button selection (simplified for remaining layout options)
   const handleSelectMode = useCallback((mode) => {
     setPositioningMode(mode);
     
@@ -105,11 +105,11 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
     }
   }, [handleSetDirection, applyDagreLayout]);
 
-  // Layout options with icons and descriptions
+  // Layout options with icons and descriptions - simplified to only include needed options
   const layoutOptions = [
     { 
       mode: 'horizontal', 
-      icon: <AlignJustify size={18} />, 
+      icon: <ArrowRight size={18} />, 
       label: 'Horizontal Flow', 
       description: 'Arrange nodes in horizontal levels',
       isDirectionOption: true,
@@ -117,13 +117,13 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
     },
     { 
       mode: 'vertical', 
-      icon: <AlignLeft size={18} className="rotate-90" />, 
+      icon: <ArrowDown size={18} />, 
       label: 'Vertical Flow', 
       description: 'Arrange nodes in vertical columns',
       isDirectionOption: true,
       active: !isHorizontal
     },
-    // Add Dagre as a primary layout option
+    // Dagre as the main layout option
     { 
       mode: 'dagre', 
       icon: <GitBranch size={18} />, 
@@ -131,34 +131,6 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
       description: 'Optimized node positioning with Dagre',
       isDirectionOption: false,
       highlight: true
-    },
-    { 
-      mode: 'grid', 
-      icon: <Grid size={18} />, 
-      label: 'Grid', 
-      description: 'Organize nodes in a grid pattern',
-      isDirectionOption: false
-    },
-    { 
-      mode: 'cascade', 
-      icon: <CornerDownRight size={18} />, 
-      label: 'Cascade', 
-      description: 'Staggered arrangement flowing diagonally',
-      isDirectionOption: false
-    },
-    { 
-      mode: 'radial', 
-      icon: <ArrowUpDown size={18} className="rotate-45" />, 
-      label: 'Radial', 
-      description: 'Nodes arranged in a circular pattern',
-      isDirectionOption: false
-    },
-    { 
-      mode: 'compact', 
-      icon: <ChevronsUp size={18} className="rotate-90" />, 
-      label: 'Compact', 
-      description: 'Minimizes overall space usage',
-      isDirectionOption: false
     }
   ];
 
@@ -241,32 +213,6 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
             </button>
           </div>
 
-          {/* Layout options */}
-          <div className="p-1 max-h-64 overflow-y-auto">
-            <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 px-3 py-1 uppercase">
-              Other Layout Patterns
-            </h4>
-            {layoutOptions
-              .filter(opt => !opt.isDirectionOption && opt.mode !== 'dagre')
-              .map(option => (
-                <button
-                  key={option.mode}
-                  onClick={() => handleSelectMode(option.mode)}
-                  className={`w-full flex items-center px-3 py-2 text-sm rounded-md ${
-                    positioningMode === option.mode
-                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg'
-                  }`}
-                >
-                  <span className="mr-2">{option.icon}</span>
-                  <div className="text-left">
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{option.description}</div>
-                  </div>
-                </button>
-              ))}
-          </div>
-
           {/* Layout settings */}
           <div className="p-3 border-t border-gray-200 dark:border-dark-border">
             <div className="mb-2">
@@ -286,24 +232,7 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
               </div>
             </div>
 
-            {positioningMode === 'grid' && (
-              <div className="mb-2">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Grid Columns
-                </label>
-                <div className="flex items-center">
-                  <input 
-                    type="range" 
-                    min="2" 
-                    max="6" 
-                    value={gridColumns} 
-                    onChange={(e) => setGridColumns(Number(e.target.value))} 
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                  />
-                  <span className="ml-2 text-xs text-gray-600 dark:text-gray-400 w-8">{gridColumns}</span>
-                </div>
-              </div>
-            )}
+            {/* Grid columns control removed as grid layout is no longer an option */}
 
             <button
               onClick={applyLayout}
