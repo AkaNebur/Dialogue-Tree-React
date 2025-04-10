@@ -11,7 +11,6 @@ const DialogueNodeComponent: React.FC<DialogueNodeProps> = ({
   isConnectable,
   sourcePosition = Position.Right,
   targetPosition = Position.Left,
-  id,
   type, // Used to check if it's a start node
 }) => {
   // Access className from the data object

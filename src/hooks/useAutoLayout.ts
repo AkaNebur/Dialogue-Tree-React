@@ -1,8 +1,7 @@
 // src/hooks/useAutoLayout.ts
 import { useCallback } from 'react';
-import { DialogueNode, DialogueEdge, NodePositions, UseAutoLayoutReturn } from '../types';
+import { DialogueNode, DialogueEdge, NodePositions, UseAutoLayoutReturn, OrderingStrategy } from '../types';
 import { calculateDagreLayout, applyOrderingStrategy } from '../utils/dagreLayout';
-import { OrderingStrategy } from '../components/Header/OrderSelector';
 
 /**
  * Enhanced version of useAutoLayout hook that uses Dagre for automatic layout

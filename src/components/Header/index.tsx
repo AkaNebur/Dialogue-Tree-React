@@ -1,7 +1,7 @@
 // src/components/Header/index.tsx - Removed layout toggle button
 import React, { memo } from 'react';
 import { Moon, Sun, Database, X } from 'lucide-react';
-import OrderSelector, { OrderingStrategy } from './OrderSelector.tsx';
+import OrderSelector from './OrderSelector.tsx';
 
 interface HeaderProps {
   isDarkMode?: boolean;
@@ -9,8 +9,8 @@ interface HeaderProps {
   isDataManagementVisible?: boolean;
   onToggleDataManagement?: () => void;
   // Node ordering props
-  orderingStrategy?: OrderingStrategy;
-  onOrderChange?: (strategy: OrderingStrategy) => void;
+  orderingStrategy?: string;
+  onOrderChange?: (strategy: string) => void;
 }
 
 /**
@@ -31,7 +31,6 @@ const Header: React.FC<HeaderProps> = memo(({
       {onOrderChange && (
         <OrderSelector 
           currentStrategy={orderingStrategy} 
-          onOrderChange={onOrderChange} 
         />
       )}
       

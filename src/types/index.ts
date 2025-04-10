@@ -1,6 +1,8 @@
 // src/types/index.ts - Updated with image property for NPCs
 import { Node, Edge, Position, XYPosition } from 'reactflow';
-import { OrderingStrategy } from '../components/Header/OrderSelector.tsx';
+
+// Node ordering strategy
+export type OrderingStrategy = 'default' | 'alphabetical' | 'creation' | 'custom';
 
 // Node dimensions and layout constants
 export interface NodeDimensions {
@@ -89,8 +91,8 @@ export interface HeaderProps {
   isDataManagementVisible?: boolean;
   onToggleDataManagement?: () => void;
   // New prop for node ordering
-  orderingStrategy?: OrderingStrategy;
-  onOrderChange?: (strategy: OrderingStrategy) => void;
+  orderingStrategy?: string;
+  onOrderChange?: (strategy: string) => void;
 }
 
 export interface DialogueFlowProps {
@@ -178,8 +180,8 @@ export interface UseAutoSaveReturn {
 
 // Node ordering hook return type
 export interface UseNodeOrderingReturn {
-  orderingStrategy: OrderingStrategy;
-  changeOrderingStrategy: (strategy: OrderingStrategy) => void;
+  orderingStrategy: string;
+  changeOrderingStrategy: (strategy: string) => void;
   applyNodeOrdering: (
     nodes: DialogueNode[], 
     nodeLevels: NodeLevels, 

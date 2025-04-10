@@ -105,11 +105,6 @@ class IdManagerClass {
      */
     private overrideGenerators(): void {
       try {
-        // Keep reference to original functions if they exist
-        const originalGetNextNodeId = window.getNextNodeId;
-        const originalGenerateNpcId = window.generateNpcId;
-        const originalGenerateConversationId = window.generateConversationId;
-        
         // Override with our managed versions
         window.getNextNodeId = (): string => {
           return this.generateNodeId();

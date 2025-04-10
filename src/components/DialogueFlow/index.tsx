@@ -20,7 +20,6 @@ import DialogueNode from './DialogueNode';
 // Centralized ID generator
 import { getNextNodeId } from '../../constants/initialData';
 import { DialogueFlowProps, DialogueNode as DialogueNodeType } from '../../types';
-import { OrderingStrategy } from '../Header/OrderSelector';
 
 // Define node types used in the flow
 const nodeTypes: NodeTypes = {
@@ -60,7 +59,6 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
   const nodesRef = useRef(nodes);
   const prevConversationIdRef = useRef<string | null>(selectedConversationId);
   const prevIsHorizontalRef = useRef<boolean>(isHorizontal);
-  const prevOrderingStrategyRef = useRef<OrderingStrategy>(orderingStrategy);
 
   // Initialize the auto-layout hook with ordering strategy
   const autoLayout = useAutoLayout(
@@ -124,7 +122,6 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
 
     const conversationJustLoaded = !initialLayoutRun.current; // True if initial layout hasn't run for this conversation
     const layoutDirectionChanged = prevIsHorizontalRef.current !== isHorizontal; // True if layout toggled
-    const orderingStrategyChanged = prevOrderingStrategyRef.current !== orderingStrategy; // True if ordering strategy changed
 
     let shouldRunLayout = false;
     if (conversationJustLoaded) {
@@ -132,9 +129,6 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
       console.log("[Layout Effect 2] Needs INITIAL layout for this conversation.");
     } else if (layoutDirectionChanged) {
       console.log("[Layout Effect 2] Layout direction changed, running layout again.");
-      shouldRunLayout = true;
-    } else if (orderingStrategyChanged) {
-      console.log("[Layout Effect 2] Ordering strategy changed, running layout again.");
       shouldRunLayout = true;
     }
 
@@ -157,12 +151,11 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
         }
         // Update the refs for tracking changes AFTER this run
         prevIsHorizontalRef.current = isHorizontal;
-        prevOrderingStrategyRef.current = orderingStrategy;
 
       }, 50);
       return () => clearTimeout(layoutTimer);
     }
-  }, [reactFlowInstance, nodes, isHorizontal, orderingStrategy, autoLayout, handleFitView]);
+  }, [reactFlowInstance, nodes, isHorizontal, autoLayout, handleFitView]);
 
   // --- Interaction Handlers ---
 
@@ -229,14 +222,13 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
           position,
           data: {
             label: `New Response ${newNodeId}`,
-            className: 'node-more', // This ensures the node has the 'node-more' class
+            className: 'node-more',
           },
           sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
           targetPosition: isHorizontal ? Position.Left : Position.Top,
         };
         console.log('[Connect End] New node object:', newNode);
   
-        // FIX: Create unique edge ID with timestamp to avoid duplicates
         const uniqueTimestamp = Date.now();
         const newEdge = {
           id: `e${sourceNodeId}-${newNodeId}-${uniqueTimestamp}`,
@@ -292,7 +284,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
         zoomable 
         pannable 
         className="transition-all duration-300 shadow-lg"
-        nodeBorderRadius={4} // Added radius for nicer appearance
+        nodeBorderRadius={4}
       />
       <Background 
         color="#aaa" 
