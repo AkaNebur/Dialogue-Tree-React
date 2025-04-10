@@ -161,7 +161,7 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
               <div className="flex items-center">
                 <input 
                   type="range" 
-                  min="80" 
+                  min="0" 
                   max="300" 
                   value={spacing} 
                   onChange={(e) => {
