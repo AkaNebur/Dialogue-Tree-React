@@ -75,11 +75,13 @@ export interface SidebarProps {
   selectedConversationId: string | null;
   onSelectNpc: (npcId: string) => void;
   onAddNpc: (name: string) => void;
+  onDeleteNpc?: (npcId: string) => void;
   onSelectConversation: (conversationId: string) => void;
   onAddConversation: (npcId: string, name: string) => void;
+  onDeleteConversation?: (conversationId: string) => void;
   onUpdateNpcName?: (npcId: string, newName: string) => void;
   onUpdateConversationName?: (conversationId: string, newName: string) => void;
-  onUpdateNpcImage?: (npcId: string, imageDataUrl: string) => void;
+  onUpdateNpcImage?: (npcId: string, imageDataUrl: string | undefined) => void;
 }
 
 export interface HeaderProps {
@@ -139,8 +141,10 @@ export interface UseDialogueManagerReturn {
   setEdges: React.Dispatch<React.SetStateAction<DialogueEdge[]>>;
   addNpc: (name: string) => void;
   selectNpc: (npcId: string) => void;
+  deleteNpc: (npcId: string) => void;
   addConversation: (npcId: string, name: string) => void;
   selectConversation: (conversationId: string) => void;
+  deleteConversation: (conversationId: string) => void;
   onNodesChange: (changes: any[]) => void;
   onEdgesChange: (changes: any[]) => void;
   onConnect: (connection: any) => void;

@@ -4,24 +4,19 @@ import { SidebarProps } from '../../types';
 import { Plus, Settings, User } from 'lucide-react';
 import EditModal from '../EditModal';
 
-// Extended props interface to include name and image updating functions
-interface ExtendedSidebarProps extends SidebarProps {
-  onUpdateNpcName?: (npcId: string, newName: string) => void;
-  onUpdateConversationName?: (conversationId: string, newName: string) => void;
-  onUpdateNpcImage?: (npcId: string, imageDataUrl: string | undefined) => void;
-}
-
 /**
- * Floating Card-based Sidebar Component with editing modals and profile images
+ * Floating Card-based Sidebar Component with editing modals, profile images, and delete options
  */
-const CardSidebar: React.FC<ExtendedSidebarProps> = ({
+const CardSidebar: React.FC<SidebarProps> = ({
   npcs,
   selectedNpcId,
   selectedConversationId,
   onSelectNpc,
   onAddNpc,
+  onDeleteNpc,
   onSelectConversation,
   onAddConversation,
+  onDeleteConversation,
   onUpdateNpcName,
   onUpdateConversationName,
   onUpdateNpcImage,
@@ -96,6 +91,18 @@ const CardSidebar: React.FC<ExtendedSidebarProps> = ({
     // Close modal
     setIsEditModalOpen(false);
   };
+  
+  // Handle entity deletion
+  const handleDeleteEntity = () => {
+    if (editingEntityType === 'NPC' && onDeleteNpc) {
+      onDeleteNpc(editingEntityId);
+    } else if (editingEntityType === 'Dialogue' && onDeleteConversation) {
+      onDeleteConversation(editingEntityId);
+    }
+    
+    // Close modal after deletion
+    setIsEditModalOpen(false);
+  };
 
   return (
     <>
@@ -147,7 +154,7 @@ const CardSidebar: React.FC<ExtendedSidebarProps> = ({
             {npcs.map((npc) => (
               <div
                 key={npc.id}
-                className={`card-item relative rounded-lg shadow-md ${
+                className={`card-item min-h-16 flex items-center relative rounded-lg shadow-md ${
                   npc.id === selectedNpcId 
                     ? 'bg-blue-100 border border-blue-300 dark:bg-blue-900 dark:border-blue-900 dark:border-opacity-60' 
                     : 'bg-white border border-blue-100 hover:border-blue-300 dark:bg-dark-bg dark:border-dark-border dark:hover:border-dark-accent'
@@ -285,11 +292,12 @@ const CardSidebar: React.FC<ExtendedSidebarProps> = ({
         </div>
       </div>
       
-      {/* Edit Modal */}
+      {/* Edit Modal with Delete Option */}
       <EditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSaveChanges}
+        onDelete={handleDeleteEntity}
         title={`Edit ${editingEntityType} ${editingEntityType === 'NPC' ? 'Profile' : 'Name'}`}
         currentName={editingEntityName}
         currentImage={editingEntityImage}

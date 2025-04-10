@@ -25,6 +25,20 @@ const IdManagerInitializer: React.FC = () => {
         console.log("[IdManagerInitializer] Initializing IdManager...");
         IdManager.initialize();
         console.log("[IdManagerInitializer] IdManager initialized successfully");
+        
+        // Force a scan of any initial NPCs and conversations
+        if (window.localStorage) {
+          const savedNpcs = localStorage.getItem('npcs');
+          if (savedNpcs) {
+            console.log("[IdManagerInitializer] Initial NPC data found, ensuring ID tracking");
+            
+            // This will re-initialize and scan stored NPCs and conversations
+            // to ensure all IDs are properly tracked
+            setTimeout(() => {
+              IdManager.initialize();
+            }, 100);
+          }
+        }
       } catch (error) {
         console.error("[IdManagerInitializer] Error initializing IdManager:", error);
       }

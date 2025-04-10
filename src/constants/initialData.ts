@@ -41,8 +41,9 @@ export const generateNpcId = (): string => {
     return window.generateNpcId();
   }
   
-  // Fallback to local counter
-  return `npc-${npcIdCounter++}`;
+  // Fallback to local counter - ensure uniqueness with timestamp
+  const id = `npc-${npcIdCounter++}-${Date.now().toString().slice(-4)}`;
+  return id;
 };
 
 /**
@@ -55,8 +56,9 @@ export const generateConversationId = (): string => {
     return window.generateConversationId();
   }
   
-  // Fallback to local counter
-  return `conv-${convIdCounter++}`;
+  // Fallback to local counter - ensure uniqueness with timestamp
+  const id = `conv-${convIdCounter++}-${Date.now().toString().slice(-4)}`;
+  return id;
 };
 
 /**
@@ -109,31 +111,36 @@ const initialConv1Nodes: DialogueNode[] = [
 // --- Edges remain the same ---
 const initialConv1Edges: DialogueEdge[] = [];
 
-// --- New Initial Data Structure ---
+// --- New Initial Data Structure using Timestamps to Ensure Unique IDs ---
 export const initialNpcs: NPC[] = [
   {
-    id: generateNpcId(),
+    id: typeof window !== 'undefined' && window.generateNpcId 
+      ? window.generateNpcId() : `npc-1-${Date.now()}`,
     name: 'Guard Captain',
     conversations: [
       {
-        id: generateConversationId(),
+        id: typeof window !== 'undefined' && window.generateConversationId 
+          ? window.generateConversationId() : `conv-1-${Date.now()}`,
         name: 'Greeting',
         nodes: initialConv1Nodes,
         edges: initialConv1Edges,
       },
       {
-        id: generateConversationId(),
+        id: typeof window !== 'undefined' && window.generateConversationId 
+          ? window.generateConversationId() : `conv-2-${Date.now()}`,
         name: 'Quest Intro',
         ...createInitialConversationData('Quest Intro'),
       },
     ],
   },
   {
-    id: generateNpcId(),
+    id: typeof window !== 'undefined' && window.generateNpcId 
+      ? window.generateNpcId() : `npc-2-${Date.now() + 1}`,
     name: 'Mysterious Merchant',
     conversations: [
        {
-        id: generateConversationId(),
+        id: typeof window !== 'undefined' && window.generateConversationId 
+          ? window.generateConversationId() : `conv-3-${Date.now()}`,
         name: 'Trade Offer',
         ...createInitialConversationData('Trade Offer'),
       },

@@ -1,4 +1,4 @@
-// src/hooks/useDialogueManager.ts - UPDATE with image handling functionality
+// src/hooks/useDialogueManager.ts - With delete functionality
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   applyNodeChanges,
@@ -32,7 +32,7 @@ type ConversationUpdater = (conv: Conversation) => Conversation;
 
 /**
  * Custom hook to manage NPCs, their conversations, and the active dialogue flow state.
- * Now with name editing and image management functionality.
+ * Enhanced with delete functionality for NPCs and Conversations.
  */
 const useDialogueManager = (): UseDialogueManagerReturn & { 
   isSaving: boolean; 
@@ -176,6 +176,35 @@ const useDialogueManager = (): UseDialogueManagerReturn & {
     }
   }, [npcs]); // Depend on npcs to find the npc correctly
 
+  // --- NPC Delete Function ---
+  const deleteNpc = useCallback((npcId: string) => {
+    if (!npcId) return;
+    
+    setNpcs((currentNpcs) => {
+      const updatedNpcs = currentNpcs.filter((npc) => npc.id !== npcId);
+      
+      // If we're deleting the currently selected NPC, select the first available NPC
+      if (npcId === selectedNpcId) {
+        // Wait until next render to update selections
+        setTimeout(() => {
+          if (updatedNpcs.length > 0) {
+            setSelectedNpcId(updatedNpcs[0].id);
+            if (updatedNpcs[0].conversations.length > 0) {
+              setSelectedConversationId(updatedNpcs[0].conversations[0].id);
+            } else {
+              setSelectedConversationId(null);
+            }
+          } else {
+            setSelectedNpcId(null);
+            setSelectedConversationId(null);
+          }
+        }, 0);
+      }
+      
+      return updatedNpcs;
+    });
+  }, [selectedNpcId]);
+
   // --- NPC Name Update Function ---
   const updateNpcName = useCallback((npcId: string, newName: string) => {
     if (!npcId || !newName.trim()) return;
@@ -193,7 +222,7 @@ const useDialogueManager = (): UseDialogueManagerReturn & {
     );
   }, []);
   
-  // --- NEW: NPC Image Update Function ---
+  // --- NPC Image Update Function ---
   const updateNpcImage = useCallback((npcId: string, imageDataUrl: string | undefined) => {
     if (!npcId) return;
     
@@ -240,6 +269,42 @@ const useDialogueManager = (): UseDialogueManagerReturn & {
   const selectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);
   }, []);
+
+  // --- Delete Conversation Function ---
+  const deleteConversation = useCallback((conversationId: string) => {
+    if (!conversationId || !selectedNpcId) return;
+    
+    setNpcs((currentNpcs) => 
+      currentNpcs.map((npc) => {
+        if (npc.id === selectedNpcId) {
+          // Make sure we don't delete the last conversation
+          if (npc.conversations.length <= 1) {
+            console.warn("Cannot delete the last conversation for an NPC");
+            return npc;
+          }
+          
+          // Filter out the conversation to delete
+          const updatedConversations = npc.conversations.filter(
+            (conv) => conv.id !== conversationId
+          );
+          
+          // If we're deleting the selected conversation, select another one
+          if (conversationId === selectedConversationId && updatedConversations.length > 0) {
+            // Wait until next render to update selection
+            setTimeout(() => {
+              setSelectedConversationId(updatedConversations[0].id);
+            }, 0);
+          }
+          
+          return {
+            ...npc,
+            conversations: updatedConversations,
+          };
+        }
+        return npc;
+      })
+    );
+  }, [selectedNpcId, selectedConversationId]);
 
   // --- Conversation Name Update Function ---
   const updateConversationName = useCallback((conversationId: string, newName: string) => {
@@ -408,18 +473,20 @@ const useDialogueManager = (): UseDialogueManagerReturn & {
     setEdges,
     addNpc,
     selectNpc,
+    deleteNpc,
     addConversation,
     selectConversation,
+    deleteConversation,
     onNodesChange,
     onEdgesChange,
     onConnect,
     updateNodePositions,
     updateNodeLayout,
-    // Added name and image editing functions
+    // Name and image editing functions
     updateNpcName,
     updateConversationName,
     updateNpcImage,
-    // Added auto-save state
+    // Auto-save state
     isSaving,
     lastSaved,
     isLoading,

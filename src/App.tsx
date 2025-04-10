@@ -1,4 +1,4 @@
-// src/App.tsx - Updated to include NPC image editing functionality
+// src/App.tsx - Updated to include DatabaseManager
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
@@ -14,8 +14,9 @@ import NodePositioner from './components/NodePositioner';
 import CardSidebar from './components/CardSidebar';
 import AutoSaveIndicator from './components/AutoSaveIndicator';
 import DataActions from './components/DataActions';
-import IdManagerInitializer from './components/IdManagerInitializer'; 
-import IdDebugger from './components/IdDebugger'; 
+import IdManagerInitializer from './components/IdManagerInitializer';
+import IdDebugger from './components/IdDebugger';
+import DatabaseManager from './components/DatabaseManager'; // Import the new component
 
 // Utilities
 import { calculateNodePositions, PositioningMode } from './utils/nodePositioning';
@@ -30,10 +31,10 @@ import './styles/index.css';
 const App: React.FC = () => {
   const autoLayoutRef = useRef<(() => void) | null>(null);
   const fitViewRef = useRef<(() => void) | null>(null);
-  
+
   // Add state for Data Management visibility
   const [isDataManagementVisible, setIsDataManagementVisible] = useState<boolean>(false);
-  
+
   // Add state for node positioning
   const [positioningMode, setPositioningMode] = useState<PositioningMode>('horizontal');
   const [layoutOptions, setLayoutOptions] = useState({
@@ -52,8 +53,10 @@ const App: React.FC = () => {
     setEdges,
     addNpc,
     selectNpc,
+    deleteNpc,
     addConversation,
     selectConversation,
+    deleteConversation,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -98,12 +101,12 @@ const App: React.FC = () => {
   );
 
   // Check system preference for dark mode
-  const prefersDarkMode = window.matchMedia && 
+  const prefersDarkMode = window.matchMedia &&
     window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   // Initialize theme toggle with system preference
   const { isDarkMode, toggleTheme } = useThemeToggle(prefersDarkMode);
-  
+
   // Toggle function for Data Management visibility
   const toggleDataManagement = useCallback(() => {
     setIsDataManagementVisible(prev => !prev);
@@ -112,11 +115,11 @@ const App: React.FC = () => {
   // Apply custom node positioning with Dagre integration
   const applyNodePositioning = useCallback((mode: PositioningMode, options: { spacing?: number; gridColumns?: number } = {}) => {
     console.log(`Applying ${mode} positioning with options:`, options);
-    
+
     // Update positioning mode state
     setPositioningMode(mode);
     setLayoutOptions(prev => ({ ...prev, ...options }));
-    
+
     // Update layout direction if using horizontal/vertical mode
     if (mode === 'horizontal' && !isHorizontal) {
       setLayout(true);
@@ -127,17 +130,17 @@ const App: React.FC = () => {
       console.log("Applying Dagre layout...");
       const direction = isHorizontal ? 'LR' : 'TB';
       const spacing = options.spacing || layoutOptions.spacing;
-      
+
       const newPositions = calculateDagreLayout(
         activeNodes,
         activeEdges,
         direction,
         spacing
       );
-      
+
       // Update node positions
       updateNodePositions(newPositions);
-      
+
       // Fit view after positioning
       setTimeout(() => {
         triggerFitView();
@@ -150,29 +153,29 @@ const App: React.FC = () => {
         mode,
         { ...layoutOptions, ...options }
       );
-      
+
       // Update node positions
       updateNodePositions(newPositions);
-      
+
       // Fit view after positioning
       setTimeout(() => {
         triggerFitView();
       }, 100);
     }
   }, [
-    activeNodes, 
-    activeEdges, 
-    updateNodePositions, 
-    triggerFitView, 
-    layoutOptions, 
-    isHorizontal, 
+    activeNodes,
+    activeEdges,
+    updateNodePositions,
+    triggerFitView,
+    layoutOptions,
+    isHorizontal,
     setLayout
   ]);
 
   // Listen for system dark mode preference changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
       // Update your theme state based on system preference
       if (e.matches) {
@@ -181,12 +184,12 @@ const App: React.FC = () => {
         document.documentElement.classList.remove('dark');
       }
     };
-    
+
     // Modern browsers
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
-    } 
+    }
     // Fallback for older browsers
     else {
       mediaQuery.addListener(handleChange as any);
@@ -244,10 +247,13 @@ const App: React.FC = () => {
     <div className={`w-screen h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
       {/* Add IdManagerInitializer to handle ID persistence */}
       <IdManagerInitializer />
-      
+
+      {/* Add Database Manager for handling database versioning issues */}
+      <DatabaseManager />
+
       {/* Optional: Add ID Debugger for development and troubleshooting */}
       {process.env.NODE_ENV === 'development' && <IdDebugger />}
-      
+
       {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
@@ -277,7 +283,7 @@ const App: React.FC = () => {
           />
         </div>
       </ReactFlowProvider>
-      
+
       {/* Floating Header with Layout Controls - Now integrated */}
       <div className="absolute top-4 right-4 z-30 flex space-x-3 transition-all duration-300">
         {/* Enhanced Node Positioner component with direction toggle */}
@@ -290,7 +296,7 @@ const App: React.FC = () => {
           onFitView={triggerFitView}
           setLayout={setLayout} // Pass the new direct layout setter
         />
-        
+
         {/* Updated Header component (without layout toggle) */}
         <Header
           isDarkMode={isDarkMode}
@@ -299,7 +305,7 @@ const App: React.FC = () => {
           onToggleDataManagement={toggleDataManagement}
         />
       </div>
-      
+
       {/* Floating Card Sidebar with name and image editing functionality */}
       <div className="absolute top-4 left-4 z-20 transition-all duration-300">
         <CardSidebar
@@ -313,6 +319,8 @@ const App: React.FC = () => {
           onUpdateNpcName={updateNpcName}
           onUpdateConversationName={updateConversationName}
           onUpdateNpcImage={updateNpcImage}
+          onDeleteNpc={deleteNpc}
+          onDeleteConversation={deleteConversation}
         />
       </div>
 
@@ -322,7 +330,7 @@ const App: React.FC = () => {
           <DataActions onDataImported={handleDataImported} />
         </div>
       )}
-      
+
       {/* Auto-save Indicator */}
       <AutoSaveIndicator isSaving={isSaving || false} lastSaved={lastSaved || null} />
     </div>

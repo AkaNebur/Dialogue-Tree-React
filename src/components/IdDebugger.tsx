@@ -13,14 +13,20 @@ const IdDebugger: React.FC = () => {
   const [visible, setVisible] = useState<boolean>(false);
   const [ids, setIds] = useState<{
     nodeIdValue: number;
+    npcIdValue: number;
+    convIdValue: number;
     nodeIds: string[];
     npcs: string[];
     conversations: string[];
+    idStats: Record<string, any>;
   }>({
     nodeIdValue: 0,
+    npcIdValue: 0,
+    convIdValue: 0,
     nodeIds: [],
     npcs: [],
-    conversations: []
+    conversations: [],
+    idStats: {}
   });
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
@@ -39,8 +45,11 @@ const IdDebugger: React.FC = () => {
 
   // Get the latest debug info
   const updateDebugInfo = () => {
-    // Get node ID counter value
+    // Get ID counter values
     const nodeIdValue = IdManager.getCurrentNodeId();
+    const npcIdValue = IdManager.getCurrentNpcId?.() || 0;
+    const convIdValue = IdManager.getCurrentConvId?.() || 0;
+    const idStats = IdManager.getIdStats?.() || {};
     
     // Collect existing DOM node IDs
     const nodeElements = document.querySelectorAll('[data-id]');
@@ -57,12 +66,18 @@ const IdDebugger: React.FC = () => {
       const npcString = localStorage.getItem('npcs');
       if (npcString) {
         const npcData = JSON.parse(npcString);
-        npcs = npcData.map((npc: any) => npc.id).slice(0, 10);
+        npcs = npcData.map((npc: any) => `${npc.id} (${npc.name})`).slice(0, 10);
         
-        // Extract conversation IDs from the first NPC
-        if (npcData[0]?.conversations) {
-          conversations = npcData[0].conversations.map((conv: any) => conv.id).slice(0, 10);
-        }
+        // Extract all conversation IDs from all NPCs
+        const allConversations: string[] = [];
+        npcData.forEach((npc: any) => {
+          if (npc.conversations) {
+            npc.conversations.forEach((conv: any) => {
+              allConversations.push(`${conv.id} (${conv.name})`);
+            });
+          }
+        });
+        conversations = allConversations.slice(0, 20);
       }
     } catch (e) {
       console.warn('Error getting NPC data for debug panel', e);
@@ -70,9 +85,12 @@ const IdDebugger: React.FC = () => {
     
     setIds({
       nodeIdValue,
+      npcIdValue,
+      convIdValue,
       nodeIds,
       npcs,
-      conversations
+      conversations,
+      idStats
     });
   };
 
@@ -150,13 +168,34 @@ const IdDebugger: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        {/* Current Node ID Counter */}
+        {/* Counter Values Section */}
         <div>
-          <div className="text-sm font-semibold mb-1 text-blue-300">Current Node ID Counter</div>
-          <div className="font-mono bg-gray-900 p-2 rounded text-green-400">
-            {ids.nodeIdValue}
+          <div className="text-sm font-semibold mb-1 text-blue-300">ID Counter Values</div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="font-mono bg-gray-900 p-2 rounded">
+              <div className="text-xs text-gray-400 mb-1">Node</div>
+              <div className="text-green-400">{ids.nodeIdValue}</div>
+            </div>
+            <div className="font-mono bg-gray-900 p-2 rounded">
+              <div className="text-xs text-gray-400 mb-1">NPC</div>
+              <div className="text-green-400">{ids.npcIdValue}</div>
+            </div>
+            <div className="font-mono bg-gray-900 p-2 rounded">
+              <div className="text-xs text-gray-400 mb-1">Conversation</div>
+              <div className="text-green-400">{ids.convIdValue}</div>
+            </div>
           </div>
         </div>
+
+        {/* ID Stats from IdManager */}
+        {ids.idStats && Object.keys(ids.idStats).length > 0 && (
+          <div>
+            <div className="text-sm font-semibold mb-1 text-blue-300">ID Manager Stats</div>
+            <div className="font-mono bg-gray-900 p-2 rounded text-xs overflow-x-auto whitespace-pre">
+              {JSON.stringify(ids.idStats, null, 2)}
+            </div>
+          </div>
+        )}
 
         {/* Active Node IDs */}
         <div>
@@ -175,7 +214,12 @@ const IdDebugger: React.FC = () => {
           <div className="text-sm font-semibold mb-1 text-blue-300">NPC IDs</div>
           <div className="font-mono bg-gray-900 p-2 rounded text-xs overflow-x-auto whitespace-nowrap">
             {ids.npcs.length > 0 ? (
-              ids.npcs.join(', ')
+              ids.npcs.map((npc, i) => (
+                <div key={i} className="mb-1 flex items-center">
+                  <span className="inline-block w-5 text-gray-400">{i+1}.</span>
+                  <span>{npc}</span>
+                </div>
+              ))
             ) : (
               <span className="text-gray-500 italic">No NPC IDs found</span>
             )}
@@ -185,9 +229,14 @@ const IdDebugger: React.FC = () => {
         {/* Conversation IDs */}
         <div>
           <div className="text-sm font-semibold mb-1 text-blue-300">Conversation IDs</div>
-          <div className="font-mono bg-gray-900 p-2 rounded text-xs overflow-x-auto whitespace-nowrap">
+          <div className="font-mono bg-gray-900 p-2 rounded text-xs overflow-x-auto max-h-32 overflow-y-auto">
             {ids.conversations.length > 0 ? (
-              ids.conversations.join(', ')
+              ids.conversations.map((conv, i) => (
+                <div key={i} className="mb-1 flex items-center">
+                  <span className="inline-block w-5 text-gray-400">{i+1}.</span>
+                  <span>{conv}</span>
+                </div>
+              ))
             ) : (
               <span className="text-gray-500 italic">No conversation IDs found</span>
             )}
@@ -217,7 +266,7 @@ const IdDebugger: React.FC = () => {
             Refresh Data
           </button>
           
-          {/* New Database Delete Button */}
+          {/* Database Delete Button */}
           <button
             onClick={deleteAllData}
             disabled={isDeleting}
