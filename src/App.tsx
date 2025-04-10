@@ -1,303 +1,215 @@
-// src/App.tsx - Updated to include DatabaseManager
+// src/App.tsx
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
-// Custom hooks
-import useDialogueManager from './hooks/useDialogueManager';
 import useLayoutToggle from './hooks/useLayoutToggle';
 import useThemeToggle from './hooks/useThemeToggle';
 
-// Components
 import DialogueFlow from './components/DialogueFlow';
 import Header from './components/Header';
 import NodePositioner from './components/NodePositioner';
 import CardSidebar from './components/CardSidebar';
 import AutoSaveIndicator from './components/AutoSaveIndicator';
 import DataActions from './components/DataActions';
-import IdManagerInitializer from './components/IdManagerInitializer';
-import IdDebugger from './components/IdDebugger';
-import DatabaseManager from './components/DatabaseManager'; // Import the new component
+import DatabaseManager from './components/DatabaseManager';
 
-// Utilities
-import { calculateNodePositions, PositioningMode } from './utils/nodePositioning';
+// Import store and specific state/actions needed HERE
+import { useDialogueStore } from './store/dialogueStore';
+
 import { calculateDagreLayout } from './utils/dagreLayout';
+import { PositioningMode } from './types';
 
-// Import global styles
 import './styles/index.css';
 
-/**
- * Main application component with NPC image editing functionality
- */
 const App: React.FC = () => {
-  const autoLayoutRef = useRef<(() => void) | null>(null);
   const fitViewRef = useRef<(() => void) | null>(null);
+  // Removed isInitialLayoutDone ref as it wasn't strictly needed for the fix
 
-  // Add state for Data Management visibility
+  // Get state and actions from Zustand store
+  const loadInitialData = useDialogueStore(state => state.loadInitialData);
+  const updateNodePositions = useDialogueStore(state => state.updateNodePositions);
+  const updateNodeLayout = useDialogueStore(state => state.updateNodeLayout);
+  const isLoading = useDialogueStore(state => state.isLoading);
+  const isSaving = useDialogueStore(state => state.isSaving);
+  const selectedConversationId = useDialogueStore(state => state.selectedConversationId);
+  // We get length here for dependency, fetch actual nodes/edges inside effect
+  const activeNodesLength = useDialogueStore(state => state.activeNodes().length);
+  const activeEdgesLength = useDialogueStore(state => state.activeEdges().length);
+
+
+  // UI State
   const [isDataManagementVisible, setIsDataManagementVisible] = useState<boolean>(false);
+  const [, setPositioningMode] = useState<PositioningMode>('dagre');
+  const [layoutOptions, setLayoutOptions] = useState({ spacing: 150 });
 
-  // Add state for node positioning
-  const [positioningMode, setPositioningMode] = useState<PositioningMode>('horizontal');
-  const [layoutOptions, setLayoutOptions] = useState({
-    spacing: 150,
-    gridColumns: 3
-  });
-
-  // Use the enhanced Dialogue Manager hook with auto-save and name/image editing
-  const {
-    npcs,
-    selectedNpcId,
-    selectedConversationId,
-    activeNodes,
-    activeEdges,
-    setNodes,
-    setEdges,
-    addNpc,
-    selectNpc,
-    deleteNpc,
-    addConversation,
-    selectConversation,
-    deleteConversation,
-    onNodesChange,
-    onEdgesChange,
-    onConnect,
-    updateNodePositions,
+  // Layout Toggle Hook
+  const { isHorizontal, toggleLayout, setLayout } = useLayoutToggle(
     updateNodeLayout,
-    // Name and image editing functions
-    updateNpcName,
-    updateConversationName,
-    updateNpcImage,
-    // Auto-save related properties
-    isSaving,
-    lastSaved,
-    isLoading
-  } = useDialogueManager();
-
-  // Initialize auto-layout trigger function
-  const triggerAutoLayout = useCallback(() => {
-    if (autoLayoutRef.current) {
-      console.log("Triggering auto layout from App");
-      autoLayoutRef.current();
-    } else {
-      console.warn("Auto layout function not yet available.");
-    }
-  }, []);
-
-  // Initialize fitView trigger function
-  const triggerFitView = useCallback(() => {
-    if (fitViewRef.current) {
-      console.log("Triggering fitView from App");
-      fitViewRef.current();
-    } else {
-      console.warn("FitView function not yet available.");
-    }
-  }, []);
-
-  // Initialize layout toggle with refactored hook
-  const { isHorizontal, toggleLayout, setLayout, direction } = useLayoutToggle(
-    updateNodeLayout,
-    triggerAutoLayout,
-    true,  // Default to horizontal initially
-    true   // Save preference in localStorage
+    (newIsHorizontal) => {
+       console.log("[App] Direction changed:", newIsHorizontal ? 'horizontal' : 'vertical');
+    },
+    true, true
   );
 
-  // Check system preference for dark mode
-  const prefersDarkMode = window.matchMedia &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-  // Initialize theme toggle with system preference
+  // Theme Hook
+  const prefersDarkMode = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   const { isDarkMode, toggleTheme } = useThemeToggle(prefersDarkMode);
 
-  // Toggle function for Data Management visibility
+  // FitView Function Ref
+  const triggerFitView = useCallback(() => {
+    fitViewRef.current?.();
+  }, []);
+
+  // Load Initial Data on Mount
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+  // Data Management Toggle
   const toggleDataManagement = useCallback(() => {
     setIsDataManagementVisible(prev => !prev);
   }, []);
 
-  // Apply custom node positioning with Dagre integration
-  const applyNodePositioning = useCallback((mode: PositioningMode, options: { spacing?: number; gridColumns?: number } = {}) => {
-    console.log(`Applying ${mode} positioning with options:`, options);
-
-    // Update positioning mode state
+  // Manual Layout Button Handler
+  const applyNodePositioning = useCallback((mode: PositioningMode, options: { spacing?: number } = {}) => {
     setPositioningMode(mode);
-    setLayoutOptions(prev => ({ ...prev, ...options }));
-
-    // Update layout direction if using horizontal/vertical mode
-    if (mode === 'horizontal' && !isHorizontal) {
-      setLayout(true);
-    } else if (mode === 'vertical' && isHorizontal) {
-      setLayout(false);
-    } else if (mode === 'dagre') {
-      // Use Dagre layout algorithm
-      console.log("Applying Dagre layout...");
-      const direction = isHorizontal ? 'LR' : 'TB';
-      const spacing = options.spacing || layoutOptions.spacing;
-
-      const newPositions = calculateDagreLayout(
-        activeNodes,
-        activeEdges,
-        direction,
-        spacing
-      );
-
-      // Update node positions
-      updateNodePositions(newPositions);
-
-      // Fit view after positioning
-      setTimeout(() => {
-        triggerFitView();
-      }, 100);
-    } else {
-      // For other layout modes, use the existing node positioning utility
-      const newPositions = calculateNodePositions(
-        activeNodes,
-        activeEdges,
-        mode,
-        { ...layoutOptions, ...options }
-      );
-
-      // Update node positions
-      updateNodePositions(newPositions);
-
-      // Fit view after positioning
-      setTimeout(() => {
-        triggerFitView();
-      }, 100);
-    }
-  }, [
-    activeNodes,
-    activeEdges,
-    updateNodePositions,
-    triggerFitView,
-    layoutOptions,
-    isHorizontal,
-    setLayout
-  ]);
-
-  // Listen for system dark mode preference changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      // Update your theme state based on system preference
-      if (e.matches) {
-        document.documentElement.classList.add('dark');
+    if (mode === 'dagre') {
+      const newSpacing = options.spacing !== undefined ? options.spacing : layoutOptions.spacing;
+      // Update local state ONLY if needed, let effect handle layout application
+      if (newSpacing !== layoutOptions.spacing) {
+         setLayoutOptions({ spacing: newSpacing });
       } else {
-        document.documentElement.classList.remove('dark');
+         // If spacing hasn't changed, force apply layout now by fetching current state
+         const currentNodes = useDialogueStore.getState().activeNodes();
+         const currentEdges = useDialogueStore.getState().activeEdges();
+         if (currentNodes.length > 0) {
+           console.log(`[App] Manually applying Dagre layout. Direction: ${isHorizontal ? 'LR' : 'TB'}, Spacing: ${newSpacing}`);
+           const dagreDirection = isHorizontal ? 'LR' : 'TB';
+           const newPositions = calculateDagreLayout(currentNodes, currentEdges, dagreDirection, newSpacing);
+           updateNodePositions(newPositions); // Update store
+           setTimeout(triggerFitView, 150); // Fit view after update
+         }
       }
-    };
-
-    // Modern browsers
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
     }
-    // Fallback for older browsers
-    else {
-      mediaQuery.addListener(handleChange as any);
-      return () => mediaQuery.removeListener(handleChange as any);
-    }
-  }, []);
+  }, [layoutOptions.spacing, isHorizontal, updateNodePositions, triggerFitView]); // Keep dependencies needed for the function itself
 
-  // Save data before window unload (when user closes the tab/browser)
+
+  // System Dark Mode Listener
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isSaving) {
-        // If currently saving, show a confirmation dialog
-        e.preventDefault();
-        e.returnValue = "Changes are being saved. Are you sure you want to leave?";
-        return e.returnValue;
+    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mediaQuery) return; // Guard for environments without matchMedia
+    const handleChange = (e: MediaQueryListEvent) => {
+        if (e.matches !== isDarkMode) {
+            toggleTheme();
+        }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [isDarkMode, toggleTheme]);
+
+  // Save Before Unload Confirmation
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      // Access latest saving state directly from store inside the handler
+      if (useDialogueStore.getState().isSaving) {
+        event.preventDefault();
+        event.returnValue = 'Changes are still saving. Are you sure you want to leave?';
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [isSaving]);
+     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []); // No dependencies needed, it accesses fresh state via getState
 
-  // Handler for when data is imported
+  // Data Import Handler (simple reload)
   const handleDataImported = useCallback(() => {
-    // Reload the page to refresh all state
     window.location.reload();
   }, []);
 
-  // Store autoLayout function reference
-  const handleAutoLayoutInitialized = useCallback((layoutFn: () => void) => {
-    console.log("AutoLayout function received from DialogueFlow");
-    autoLayoutRef.current = layoutFn;
-  }, []);
-
-  // Store fitView function reference
+  // Store FitView function from DialogueFlow
   const handleFitViewInitialized = useCallback((fitViewFn: () => void) => {
-    console.log("FitView function received from DialogueFlow");
     fitViewRef.current = fitViewFn;
   }, []);
 
-  // Update positioning mode when direction changes
+  // --- Automatic Layout Application Effect (FIXED) ---
   useEffect(() => {
-    // Update positioning mode based on current direction
-    if (direction === 'horizontal' && positioningMode === 'vertical') {
-      setPositioningMode('horizontal');
-    } else if (direction === 'vertical' && positioningMode === 'horizontal') {
-      setPositioningMode('vertical');
+    // Skip if loading or no nodes
+    if (isLoading || activeNodesLength === 0) {
+      console.log("[App Layout Effect] Skipping layout:", isLoading ? "Loading" : "No nodes");
+      return;
     }
-  }, [direction, positioningMode]);
+
+    console.log("[App Layout Effect] Applying layout.");
+    // Get the current nodes/edges INSIDE the effect
+    const currentNodes = useDialogueStore.getState().activeNodes();
+    const currentEdges = useDialogueStore.getState().activeEdges();
+
+    // Check again in case state changed between render and effect execution
+    if (currentNodes.length === 0) {
+        console.log("[App Layout Effect] Skipping layout: Nodes became empty.");
+        return;
+    }
+
+    const dagreDirection = isHorizontal ? 'LR' : 'TB';
+    const spacing = layoutOptions.spacing;
+
+    const newPositions = calculateDagreLayout(currentNodes, currentEdges, dagreDirection, spacing);
+
+    // Only update if newPositions is not empty (layout succeeded)
+    if (Object.keys(newPositions).length > 0) {
+        updateNodePositions(newPositions); // Call store action to update positions
+        setTimeout(triggerFitView, 150); // Fit view after a short delay
+    } else {
+        console.warn("[App Layout Effect] Dagre layout returned empty positions.");
+    }
+
+  }, [ // --- FIXED DEPENDENCIES ---
+      isLoading,
+      selectedConversationId, // Re-layout when conversation changes
+      isHorizontal,            // Re-layout when direction changes
+      layoutOptions.spacing,   // Re-layout when spacing changes
+      activeNodesLength,       // Re-layout when number of nodes changes
+      activeEdgesLength,       // Re-layout when number of edges changes
+      // Include actions used inside the effect if they are stable references (Zustand actions usually are)
+      updateNodePositions,
+      triggerFitView
+    ]); // REMOVED activeNodes, activeEdges OBJECTS from dependencies
+
 
   return (
-    // Full-screen container with dark mode class
     <div className={`w-screen h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
-      {/* Add IdManagerInitializer to handle ID persistence */}
-      <IdManagerInitializer />
-
-      {/* Add Database Manager for handling database versioning issues */}
       <DatabaseManager />
 
-      {/* Optional: Add ID Debugger for development and troubleshooting */}
-      {process.env.NODE_ENV === 'development' && <IdDebugger />}
-
-      {/* Loading overlay */}
+      {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-dark-surface p-6 rounded-lg shadow-xl flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Loading your dialogue trees...</p>
-          </div>
-        </div>
+         <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-[100]">
+            <div className="flex flex-col items-center">
+                <div className="animate-spin h-8 w-8 border-4 border-blue-400 border-t-transparent rounded-full mb-3"></div>
+                <p className="text-white text-lg font-medium">Loading Dialogue Data...</p>
+            </div>
+         </div>
       )}
 
-      {/* ReactFlow takes up the entire screen */}
-      <ReactFlowProvider>
-        <div className="w-full h-full transition-colors duration-300">
-          <DialogueFlow
-            nodes={activeNodes}
-            edges={activeEdges}
-            setNodes={setNodes}
-            setEdges={setEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            isHorizontal={isHorizontal}
-            updateNodePositions={updateNodePositions}
-            onInitialized={handleAutoLayoutInitialized}
-            onFitViewInitialized={handleFitViewInitialized}
-            selectedConversationId={selectedConversationId}
-          />
-        </div>
-      </ReactFlowProvider>
+      {/* Main Flow Area */}
+      <div className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+        {!isLoading && (
+          <ReactFlowProvider>
+              <DialogueFlow
+                isHorizontal={isHorizontal}
+                onFitViewInitialized={handleFitViewInitialized}
+              />
+          </ReactFlowProvider>
+        )}
+      </div>
 
-      {/* Floating Header with Layout Controls - Now integrated */}
-      <div className="absolute top-4 right-4 z-30 flex space-x-3 transition-all duration-300">
-        {/* Enhanced Node Positioner component with direction toggle */}
+      {/* Floating Controls */}
+      <div className="absolute top-4 right-4 z-30 flex space-x-3">
         <NodePositioner
           onApplyLayout={applyNodePositioning}
-          currentLayout={positioningMode}
-          nodeCount={activeNodes.length}
           isHorizontal={isHorizontal}
           onToggleDirection={toggleLayout}
           onFitView={triggerFitView}
-          setLayout={setLayout} // Pass the new direct layout setter
+          setLayout={setLayout}
         />
-
-        {/* Updated Header component (without layout toggle) */}
         <Header
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
@@ -306,33 +218,20 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Floating Card Sidebar with name and image editing functionality */}
-      <div className="absolute top-4 left-4 z-20 transition-all duration-300">
-        <CardSidebar
-          npcs={npcs}
-          selectedNpcId={selectedNpcId}
-          selectedConversationId={selectedConversationId}
-          onSelectNpc={selectNpc}
-          onAddNpc={addNpc}
-          onSelectConversation={selectConversation}
-          onAddConversation={addConversation}
-          onUpdateNpcName={updateNpcName}
-          onUpdateConversationName={updateConversationName}
-          onUpdateNpcImage={updateNpcImage}
-          onDeleteNpc={deleteNpc}
-          onDeleteConversation={deleteConversation}
-        />
+      {/* Sidebar */}
+      <div className="absolute top-4 left-4 z-20">
+         <CardSidebar />
       </div>
 
-      {/* Data Management Actions (Export/Import) - Only show when visible */}
+      {/* Data Management Panel */}
       {isDataManagementVisible && (
-        <div className="absolute top-20 right-4 z-30 transition-opacity duration-300">
+        <div className="absolute top-20 right-4 z-30">
           <DataActions onDataImported={handleDataImported} />
         </div>
       )}
 
-      {/* Auto-save Indicator */}
-      <AutoSaveIndicator isSaving={isSaving || false} lastSaved={lastSaved || null} />
+      {/* Auto Save Indicator */}
+      <AutoSaveIndicator />
     </div>
   );
 };

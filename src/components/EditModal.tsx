@@ -6,7 +6,7 @@ interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (newName: string, imageDataUrl?: string) => void;
-  onDelete?: () => void; // New prop for deletion
+  onDelete?: () => void; // Prop for deletion functionality
   title: string;
   currentName: string;
   currentImage?: string;
@@ -14,7 +14,8 @@ interface EditModalProps {
 }
 
 /**
- * Modal component for editing names and images with delete functionality
+ * Modal component for editing names and images with delete functionality.
+ * Updated button layout: Top-right X for close, Delete button in bottom actions.
  */
 const EditModal: React.FC<EditModalProps> = ({
   isOpen,
@@ -38,7 +39,7 @@ const EditModal: React.FC<EditModalProps> = ({
   useEffect(() => {
     setName(currentName);
     setImage(currentImage);
-    setShowDeleteConfirm(false);
+    setShowDeleteConfirm(false); // Reset delete confirmation state
     
     // Focus input when modal opens
     if (isOpen && inputRef.current) {
@@ -91,17 +92,20 @@ const EditModal: React.FC<EditModalProps> = ({
     }
   };
   
-  // Handle delete confirmation
+  // Trigger delete confirmation UI
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
   };
   
+  // Execute the actual deletion
   const confirmDelete = () => {
     if (onDelete) {
       onDelete();
+      // onClose(); // The parent component (CardSidebar) handles closing after delete
     }
   };
   
+  // Cancel the deletion process
   const cancelDelete = () => {
     setShowDeleteConfirm(false);
   };
@@ -152,27 +156,27 @@ const EditModal: React.FC<EditModalProps> = ({
       {/* Modal Backdrop */}
       <div 
         className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-        onClick={onClose}
+        onClick={onClose} // Close when clicking backdrop
       >
         {/* Modal Content */}
         <div 
-          className="bg-white dark:bg-dark-surface rounded-lg shadow-xl max-w-md w-full overflow-hidden transition-colors duration-200"
+          className="bg-white dark:bg-dark-surface rounded-lg shadow-xl max-w-md w-full overflow-hidden transition-colors duration-200 relative" // Added relative for positioning close button
           onClick={e => e.stopPropagation()} // Prevent closing when clicking the modal itself
         >
+          {/* Close Button (Top Right) */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1 rounded-full transition-colors z-10" // Ensure it's above header
+            title="Close"
+          >
+            <X size={24} />
+          </button>
+
           {/* Modal Header */}
-          <div className="bg-blue-500 dark:bg-blue-700 text-white px-4 py-3 flex justify-between items-center">
-            <h3 className="text-lg font-medium">{title}</h3>
-            {/* Delete Button - Only show if onDelete is provided */}
-            {onDelete && !showDeleteConfirm && (
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                className="text-white hover:text-red-200 transition-colors p-1 rounded-full hover:bg-red-700"
-                title={`Delete ${entityType}`}
-              >
-                <Trash2 size={20} />
-              </button>
-            )}
+          <div className="bg-blue-500 dark:bg-blue-700 text-white px-4 py-3">
+            <h3 className="text-lg font-medium pr-8">{title}</h3> {/* Added padding-right for close button space */}
+            {/* Trash icon removed from here */}
           </div>
           
           {/* Delete Confirmation UI */}
@@ -298,25 +302,44 @@ const EditModal: React.FC<EditModalProps> = ({
                 </div>
               )}
               
-              {/* Modal Actions */}
-              <div className="flex justify-end space-x-2 mt-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
-                          bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
-                          rounded-md transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white 
-                          bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 
-                          rounded-md transition-colors duration-200"
-                >
-                  Save Changes
-                </button>
+              {/* Modal Actions - Updated Layout */}
+              <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                 {/* Left Side: Delete Button (conditional) */}
+                 <div>
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteClick} // Trigger confirmation
+                      className="px-4 py-2 text-sm font-medium text-white 
+                                bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 
+                                rounded-md transition-colors duration-200 flex items-center"
+                      title={`Delete this ${entityType}`}
+                    >
+                       <Trash2 size={16} className="mr-1" /> Delete
+                    </button>
+                  )}
+                 </div>
+
+                 {/* Right Side: Cancel and Save Buttons */}
+                 <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
+                            bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
+                            rounded-md transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white 
+                            bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 
+                            rounded-md transition-colors duration-200"
+                  >
+                    Save Changes
+                  </button>
+                 </div>
               </div>
             </form>
           )}

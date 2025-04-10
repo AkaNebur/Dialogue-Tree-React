@@ -13,6 +13,7 @@
     "@dagrejs/dagre": "^1.1.4",
     "autoprefixer": "^10.4.16",
     "dexie": "^3.2.7",
+    "immer": "^10.1.1",
     "lodash": "^4.17.21",
     "lucide-react": "^0.487.0",
     "postcss": "^8.4.35",

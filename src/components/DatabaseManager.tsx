@@ -1,168 +1,144 @@
 // src/components/DatabaseManager.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import db from '../services/dbService'; // Import the db instance
-import { AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, Trash2, X } from 'lucide-react';
 
 interface DatabaseManagerProps {
-  onReady?: () => void;
+  onReady?: () => void; // Callback when DB is deemed ready
 }
 
 /**
- * DatabaseManager Component
+ * DatabaseManager Component - Simplified
  *
- * Manages the connection status to the IndexedDB database.
- * Detects connection errors (e.g., version issues) and displays a status indicator.
- * Also provides options to retry connection or clear the database.
+ * Manages and displays the initial connection status to IndexedDB.
+ * Shows errors prominently if connection fails on startup.
+ * Provides options to retry connection or clear the database.
  */
 const DatabaseManager: React.FC<DatabaseManagerProps> = ({ onReady }) => {
   const [dbError, setDbError] = useState<string | null>(null);
-  const [isTryingConnection, setIsTryingConnection] = useState<boolean>(true);
-  const [dbInfo, setDbInfo] = useState<any>(null);
-  const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(true);
+  const [isVisible, setIsVisible] = useState<boolean>(true); // Control panel visibility
 
   /**
-   * Check the database connection and update status
+   * Check the database connection status.
    */
-  const checkDatabaseConnection = async () => {
-    setIsTryingConnection(true);
-    setDbError(null);
-    setShowDetails(false);
+  const checkDatabaseConnection = useCallback(async (isRetry = false) => {
+    setIsChecking(true);
+    if (isRetry) setDbError(null); // Clear previous error on retry
 
     try {
-      // Try to open the database connection
       if (!db.isOpen()) {
         await db.open();
       }
-
-      // Get database information
-      const info = await db.getDatabaseInfo();
-      setDbInfo(info);
-
-      // Check for potential version upgrades needed
-      const needsUpgrade = await db.checkVersion();
-      if (needsUpgrade) {
-        setDbError(
-          'Database version mismatch detected. A page reload might be required to apply updates.'
-        );
-      } else {
-        setDbError(null); // Clear any previous errors if connection is successful
-      }
-      onReady?.(); // Notify parent that DB is ready
+      setDbError(null); // Clear any previous errors
+      console.log("[DatabaseManager] Database connection check successful.");
+      onReady?.(); // Notify parent that DB seems ready
     } catch (err: any) {
-      setDbError(`Failed to connect to the database. Reason: ${err.message || err.name}`);
-      console.error('[DatabaseManager] Error:', err);
+      const errorMessage = `Failed to connect to the database. Reason: ${err.message || err.name || 'Unknown error'}`;
+      setDbError(errorMessage);
+      console.error('[DatabaseManager] Connection Error:', err);
+      setIsVisible(true); // Ensure panel is visible if there's an error
     } finally {
-      setIsTryingConnection(false);
+      setIsChecking(false);
     }
-  };
+  }, [onReady]);
 
+  // Run check on mount
   useEffect(() => {
     checkDatabaseConnection();
-  }, []); // Run only on mount
+  }, [checkDatabaseConnection]);
 
   /**
-   * Handle deleting the entire database
+   * Handle deleting the entire database.
    */
   const handleDeleteDatabase = useCallback(async () => {
     if (window.confirm(
       '⚠️ WARNING: This will permanently delete the entire dialogue database from your browser. This action cannot be undone. Are you sure you want to proceed?'
     )) {
       try {
-        setIsTryingConnection(true); // Show loading state
+        setIsChecking(true);
         setDbError('Deleting database...');
 
-        // Close the database connection first if open
         if (db.isOpen()) {
           db.close();
         }
-
-        // Delete the database
         await db.delete();
 
         setDbError('Database deleted successfully. Please reload the page.');
         alert('Database deleted. Reloading the application...');
-        window.location.reload(); // Force reload
+        window.location.reload();
       } catch (err: any) {
         setDbError(`Failed to delete database. Error: ${err.message || err.name}`);
-      } finally {
-        setIsTryingConnection(false);
+        console.error('[DatabaseManager] Delete Error:', err);
+        setIsChecking(false);
       }
     }
   }, []);
 
-  // Don't render anything if connection is successful and details aren't shown
-  if (!dbError && !showDetails && !isTryingConnection) {
-    return null;
+  // Determine visibility based on error or loading state
+  const shouldBeVisible = dbError || isChecking;
+
+  if (!isVisible && !shouldBeVisible) {
+      return null; // Don't render if hidden and no error/loading
   }
 
   return (
-    // Position the component at the bottom-left, above the ID Debugger if present
-    <div className="fixed bottom-16 left-4 z-50 bg-gray-800 text-white p-4 rounded-lg shadow-xl max-w-sm w-full">
-      {/* Panel Content */}
+    <div className={`fixed bottom-4 left-4 z-[60] bg-gray-800 text-white p-3 rounded-lg shadow-xl max-w-sm w-full transition-opacity duration-300 ${shouldBeVisible || isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       <div className="w-full">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-700">
-          <h3 className="font-bold flex items-center">
-            <AlertCircle size={18} className={`mr-2 ${dbError ? 'text-red-400' : 'text-blue-400'}`} />
+        {/* Header with Close Button */}
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-semibold text-sm flex items-center">
+            <AlertCircle size={16} className={`mr-1.5 ${dbError ? 'text-red-400' : (isChecking ? 'text-yellow-400' : 'text-green-400')}`} />
             Database Status
           </h3>
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className="text-gray-400 hover:text-white text-xs"
-          >
-            {showDetails ? 'Hide Details' : 'Show Details'}
-          </button>
+          {/* Allow closing only if no error, not checking, and currently visible */}
+          {!dbError && !isChecking && isVisible && (
+             <button
+               onClick={() => setIsVisible(false)}
+               className="text-gray-400 hover:text-white p-1 rounded-full"
+               title="Hide Status"
+              >
+               <X size={18} />
+             </button>
+          )}
         </div>
 
         {/* Status Message */}
-        {dbError ? (
-          <div className="bg-red-900/50 border border-red-700 p-3 rounded-md mb-3">
-            <p className="text-sm text-red-300 font-medium">Error Encountered:</p>
-            <p className="text-xs text-red-300 mt-1 break-words">{dbError}</p>
-          </div>
-        ) : isTryingConnection ? (
-          <div className="flex items-center justify-center text-gray-400 text-sm py-2">
-            <RefreshCw size={16} className="animate-spin mr-2" />
-            Connecting to database...
-          </div>
-        ) : (
-          <div className="bg-green-900/50 border border-green-700 p-3 rounded-md mb-3">
-            <p className="text-sm text-green-300 font-medium">Database connected successfully.</p>
-          </div>
-        )}
+        <div className="text-xs space-y-2">
+          {isChecking ? (
+            <div className="flex items-center text-gray-400">
+              <RefreshCw size={14} className="animate-spin mr-2" />
+              {dbError || 'Checking connection...'}
+            </div>
+          ) : dbError ? (
+            <div className="bg-red-900/50 border border-red-700 p-2 rounded">
+              <p className="text-red-300 break-words">{dbError}</p>
+            </div>
+          ) : (
+             <p className="text-gray-400 italic">Database connection ok.</p> // Minimal text before hiding
+          )}
+        </div>
 
-        {/* Database Details (Collapsible) */}
-        {showDetails && dbInfo && (
-          <div className="bg-gray-900 p-3 rounded-md mb-3 text-xs">
-            <h4 className="font-semibold mb-1 text-blue-300">Database Info</h4>
-            <pre className="whitespace-pre-wrap break-words">
-              {JSON.stringify(dbInfo, null, 2)}
-            </pre>
-          </div>
-        )}
 
-        {/* Action Buttons - Only show if there's an error or details are visible */}
-        {(dbError || showDetails) && (
-          <div className="flex space-x-2 mt-2">
+        {/* Action Buttons - Show only if there's an error or checking */}
+        {(dbError || isChecking) && (
+          <div className="flex space-x-2 mt-3 pt-2 border-t border-gray-700">
             <button
-              onClick={checkDatabaseConnection}
-              disabled={isTryingConnection}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white px-3 py-1.5 text-xs rounded transition-colors flex items-center justify-center gap-1"
+              onClick={() => checkDatabaseConnection(true)} // Pass true for retry
+              disabled={isChecking}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white px-2 py-1 text-xs rounded transition-colors flex items-center justify-center gap-1"
             >
-              <RefreshCw size={12} className={isTryingConnection ? 'animate-spin' : ''} />
-              Retry Connection
+              <RefreshCw size={12} className={isChecking && !dbError?.startsWith('Deleting') ? 'animate-spin' : ''} />
+              Retry
             </button>
-            {/* Delete Database Button */}
             <button
               onClick={handleDeleteDatabase}
-              disabled={isTryingConnection}
+              disabled={isChecking}
               title="Permanently delete the database"
-              className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-70 disabled:cursor-not-allowed text-white px-3 py-1.5 text-xs rounded transition-colors flex items-center justify-center gap-1"
+              className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-70 disabled:cursor-not-allowed text-white px-2 py-1 text-xs rounded transition-colors flex items-center justify-center gap-1"
             >
               <Trash2 size={12} />
-              {isTryingConnection && dbError?.startsWith('Deleting')
-                ? 'Deleting...'
-                : 'Delete Database'}
+              {isChecking && dbError?.startsWith('Deleting') ? 'Deleting...' : 'Delete DB'}
             </button>
           </div>
         )}

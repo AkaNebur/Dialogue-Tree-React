@@ -1,12 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ArrowDown, ArrowRight, GitFork } from 'lucide-react';
-import { PositioningMode } from '../utils/nodePositioning';
 
+// Define simplified PositioningMode directly or import from types if redefined there
+type PositioningMode = 'dagre'; // Only Dagre is actively applied via button now
 
 interface NodePositionerProps {
   onApplyLayout: (mode: PositioningMode, options: any) => void;
-  currentLayout?: PositioningMode;
-  nodeCount?: number;
   isHorizontal: boolean;
   onToggleDirection: () => void;
   onFitView?: () => void;
@@ -17,29 +16,28 @@ interface NodePositionerProps {
 /**
  * Node Positioning component with integrated layout direction controls
  * Updated with consistent styling matching the CardSidebar
+ * Simplified to primarily handle direction toggle and trigger Dagre layout.
  */
-const NodePositioner: React.FC<NodePositionerProps> = ({ 
-  onApplyLayout, 
-  currentLayout = 'horizontal', 
-  nodeCount = 0,
+const NodePositioner: React.FC<NodePositionerProps> = ({
+  onApplyLayout,
   isHorizontal,
   onToggleDirection,
   onFitView,
   setLayout // Optional from refactored hook
 }) => {
-  const [positioningMode, setPositioningMode] = useState(currentLayout);
   const [isOpen, setIsOpen] = useState(false);
   const [spacing, setSpacing] = useState(150);
 
-  useEffect(() => {
-    setPositioningMode(currentLayout);
-  }, [currentLayout]);
+  // Memoized callback for applying Dagre layout
+  const applyDagreLayout = useCallback(() => {
+    onApplyLayout('dagre', { spacing });
+  }, [onApplyLayout, spacing]);
 
   // Special handler for direction toggle (horizontal/vertical)
   const handleDirectionToggle = useCallback(() => {
     if (onToggleDirection) {
       onToggleDirection();
-      
+
       // Fit view after toggle with a slight delay
       if (onFitView) {
         setTimeout(() => {
@@ -55,7 +53,7 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
     // Use the new setLayout if available, otherwise fall back to toggle
     if (setLayout) {
       setLayout(horizontal);
-      
+
       // Fit view after toggle with a slight delay
       if (onFitView) {
         setTimeout(() => {
@@ -69,19 +67,6 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
     }
   }, [isHorizontal, handleDirectionToggle, setLayout, onFitView]);
 
-  // Handler for direct Dagre layout application
-  const applyDagreLayout = useCallback(() => {
-    setPositioningMode('dagre');
-    onApplyLayout('dagre', { spacing });
-    setIsOpen(false);
-    
-    // Fit view after applying layout
-    if (onFitView) {
-      setTimeout(() => {
-        onFitView();
-      }, 100);
-    }
-  }, [onApplyLayout, spacing, onFitView]);
 
   // Layout options with icons and descriptions - simplified to only include needed options
 
@@ -99,9 +84,7 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
       {/* Dropdown panel with layout options - CENTERED with the button */}
       {isOpen && (
         <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white dark:bg-dark-surface rounded-2xl shadow-lg overflow-hidden z-50 border-2 border-blue-100 dark:border-dark-border transition-colors duration-300">
-          <div className="p-4 border-b border-gray-200 dark:border-dark-border">
-            <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300">
-              Position {nodeCount} Nodes
+          <div className="p-4 border-b border-gray-200 dark:border-dark-border">            <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300">              Layout Options
             </h3>
           </div>
 
@@ -139,15 +122,21 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
           {/* Featured Dagre Layout Button */}
           <div className="p-4 border-b border-gray-200 dark:border-dark-border">
             <button
-              onClick={applyDagreLayout}
-              className="w-full py-3 px-4 flex items-center gap-2 bg-yellow-50 hover:bg-yellow-100 
-                      dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 
+              onClick={() => {
+                applyDagreLayout();
+                setIsOpen(false); // Close dropdown after applying
+                if (onFitView) {
+                  setTimeout(onFitView, 100); // Fit view after applying
+                }
+              }}
+              className="w-full py-3 px-4 flex items-center gap-2 bg-yellow-50 hover:bg-yellow-100
+                      dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200
                       rounded-md transition-colors"
             >
               <GitFork size={18} />
               <div className="text-left">
                 <div className="font-medium">Smart Layout</div>
-                <div className="text-xs text-yellow-600 dark:text-yellow-300">Intelligently organizes nodes with minimal crossings</div>
+                <div className="text-xs text-yellow-600 dark:text-yellow-300">Apply automatic Dagre layout</div>
               </div>
             </button>
           </div>
@@ -155,20 +144,22 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
           {/* Layout settings */}
           <div className="p-4 border-t border-gray-200 dark:border-dark-border">
             <div className="mb-3">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
                 Node Spacing
               </label>
               <div className="flex items-center">
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="300" 
-                  value={spacing} 
+                <input
+                  type="range"
+                  min="0"
+                  max="300"
+                  value={spacing}
                   onChange={(e) => {
                     const newSpacing = Number(e.target.value);
                     setSpacing(newSpacing);
-                    onApplyLayout(positioningMode, { spacing: newSpacing });
-                  }} 
+                    // Optionally trigger layout on change, or just let the main button do it
+                    // applyDagreLayout(); // Uncomment to apply layout immediately on slider change
+
+                  }}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
                 />
                 <span className="ml-2 text-xs text-gray-600 dark:text-gray-400 w-8">{spacing}px</span>
@@ -180,8 +171,8 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
 
       {/* Overlay to capture clicks outside the dropdown */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setIsOpen(false)}
         />
       )}

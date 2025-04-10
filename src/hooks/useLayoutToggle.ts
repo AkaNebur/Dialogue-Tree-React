@@ -1,27 +1,20 @@
 // src/hooks/useLayoutToggle.ts
 import { useState, useCallback, useEffect } from 'react';
-import { UseLayoutToggleReturn } from '../types';
 
-/**
- * Custom hook to manage node layout direction (horizontal/vertical)
- * Now integrated with the NodePositioner component.
- * 
- * @param updateNodeLayout - Function to update node handle positions
- * @param triggerAutoLayout - Function to trigger automatic layout calculation
- * @param initialHorizontal - Initial layout direction (default: true = horizontal)
- * @param savePreference - Whether to save layout preference to localStorage (default: true)
- * @returns Layout state and toggle function
- */
+interface UseLayoutToggleReturnModified {
+  isHorizontal: boolean;
+  toggleLayout: () => void;
+  setLayout: (horizontal: boolean) => void;
+  direction: 'horizontal' | 'vertical';
+}
 const useLayoutToggle = (
   updateNodeLayout: (isHorizontal: boolean) => void,
-  triggerAutoLayout: () => void,
+  onDirectionChange: (newIsHorizontal: boolean) => void, // Callback when state changes
   initialHorizontal: boolean = true,
   savePreference: boolean = true
-): UseLayoutToggleReturn => {
-  // Try to get saved preference from localStorage
+): UseLayoutToggleReturnModified => {
   const getSavedPreference = (): boolean => {
     if (!savePreference) return initialHorizontal;
-    
     try {
       const saved = localStorage.getItem('dialogueBuilderLayoutDirection');
       return saved === null ? initialHorizontal : saved === 'horizontal';
@@ -31,61 +24,41 @@ const useLayoutToggle = (
     }
   };
 
-  // Initialize state with saved preference or default
   const [isHorizontal, setIsHorizontal] = useState<boolean>(getSavedPreference());
 
-  // Toggle layout between horizontal and vertical
+  const performLayoutChange = useCallback((newIsHorizontal: boolean) => {
+     // Update state FIRST
+     setIsHorizontal(newIsHorizontal);
+
+     if (savePreference) {
+       try {
+         localStorage.setItem(
+           'dialogueBuilderLayoutDirection',
+           newIsHorizontal ? 'horizontal' : 'vertical'
+         );
+       } catch (e) {
+         console.warn('Failed to save layout preference to localStorage', e);
+       }
+     }
+     // Call the callback AFTER state update is requested
+     onDirectionChange(newIsHorizontal);
+  }, [savePreference, onDirectionChange]); // Removed setIsHorizontal from deps
+
   const toggleLayout = useCallback(() => {
-    setIsHorizontal((prev) => {
-      const newValue = !prev;
-      
-      // Save preference to localStorage if enabled
-      if (savePreference) {
-        try {
-          localStorage.setItem(
-            'dialogueBuilderLayoutDirection', 
-            newValue ? 'horizontal' : 'vertical'
-          );
-        } catch (e) {
-          console.warn('Failed to save layout preference to localStorage', e);
-        }
-      }
-      
-      return newValue;
-    });
-  }, [savePreference]);
-  
-  // Directly set layout to a specific direction
+    const newValue = !isHorizontal;
+    performLayoutChange(newValue);
+  }, [isHorizontal, performLayoutChange]);
+
   const setLayout = useCallback((horizontal: boolean) => {
     if (horizontal === isHorizontal) return; // No change needed
-    
-    setIsHorizontal(horizontal);
-    
-    // Save preference to localStorage if enabled
-    if (savePreference) {
-      try {
-        localStorage.setItem(
-          'dialogueBuilderLayoutDirection', 
-          horizontal ? 'horizontal' : 'vertical'
-        );
-      } catch (e) {
-        console.warn('Failed to save layout preference to localStorage', e);
-      }
-    }
-  }, [isHorizontal, savePreference]);
+    performLayoutChange(horizontal);
+  }, [isHorizontal, performLayoutChange]);
 
-  // Update node handle positions when direction changes
+  // Update node handle positions immediately when direction changes state
   useEffect(() => {
-    console.log(`[useLayoutToggle] Updating layout direction: ${isHorizontal ? 'horizontal' : 'vertical'}`);
+    console.log(`[useLayoutToggle] Updating node handles for direction: ${isHorizontal ? 'horizontal' : 'vertical'}`);
     updateNodeLayout(isHorizontal);
-    
-    // Allow DOM to update before calculating new layout
-    const timer = setTimeout(() => {
-      triggerAutoLayout();
-    }, 50);
-    
-    return () => clearTimeout(timer);
-  }, [isHorizontal, updateNodeLayout, triggerAutoLayout]);
+  }, [isHorizontal, updateNodeLayout]);
 
   return {
     isHorizontal,

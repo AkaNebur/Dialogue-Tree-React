@@ -1,39 +1,31 @@
-// src/components/Header/index.tsx - Removed layout toggle button
+// src/components/Header/index.tsx - Removed layout toggle button and order selector
 import React, { memo } from 'react';
 import { Moon, Sun, Database, X } from 'lucide-react';
-import OrderSelector from './OrderSelector.tsx';
+// OrderSelector import removed
 
 interface HeaderProps {
   isDarkMode?: boolean;
   onToggleTheme?: () => void;
   isDataManagementVisible?: boolean;
   onToggleDataManagement?: () => void;
-  // Node ordering props
-  orderingStrategy?: string;
-  onOrderChange?: (strategy: string) => void;
+  // Node ordering props removed
 }
 
 /**
  * Floating header with theme toggle and data management
  * Layout toggle has been moved to NodePositioner
+ * Order selector has been removed
  */
 const Header: React.FC<HeaderProps> = memo(({
   isDarkMode = false,
   onToggleTheme,
   isDataManagementVisible = false,
   onToggleDataManagement,
-  orderingStrategy = 'default',
-  onOrderChange
 }) => {
   return (
     <div className="flex space-x-3">
-      {/* Node ordering selector */}
-      {onOrderChange && (
-        <OrderSelector 
-          currentStrategy={orderingStrategy} 
-        />
-      )}
-      
+      {/* Node ordering selector removed */}
+
       {/* Theme toggle button */}
       {onToggleTheme && (
         <button
@@ -44,7 +36,7 @@ const Header: React.FC<HeaderProps> = memo(({
           {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
         </button>
       )}
-      
+
       {/* Data management toggle button */}
       {onToggleDataManagement && (
         <button
@@ -59,4 +51,5 @@ const Header: React.FC<HeaderProps> = memo(({
   );
 });
 
+Header.displayName = 'Header'; // Add display name for memo component
 export default Header;
