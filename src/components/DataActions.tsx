@@ -1,6 +1,7 @@
 // src/components/DataActions.tsx
 import React, { useState } from 'react';
 import { exportDialogueData, importDialogueData } from '../services/dialogueService';
+import { Download, Upload, AlertTriangle } from 'lucide-react';
 
 interface DataActionsProps {
   onDataImported: () => void;
@@ -8,6 +9,7 @@ interface DataActionsProps {
 
 /**
  * Component for importing and exporting dialogue data
+ * Styled to match the NodePositioner component
  */
 const DataActions: React.FC<DataActionsProps> = ({ onDataImported }) => {
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -80,66 +82,67 @@ const DataActions: React.FC<DataActionsProps> = ({ onDataImported }) => {
   };
   
   return (
-    <div className="bg-white dark:bg-dark-surface rounded-lg shadow-lg p-3 flex flex-col gap-2">
-      <h3 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Data Management</h3>
-      
-      {/* Export Button */}
-      <button
-        onClick={handleExport}
-        disabled={isExporting}
-        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
-      >
-        {isExporting ? (
-          <>
-            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-            <span>Exporting...</span>
-          </>
-        ) : (
-          <>
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span>Export Data</span>
-          </>
-        )}
-      </button>
-      
-      {/* Import Button */}
-      <label className={`flex items-center gap-2 px-3 py-2 rounded-md shadow-md cursor-pointer ${
-        isImporting 
-          ? 'bg-green-400 text-white' 
-          : 'bg-green-600 text-white hover:bg-green-700'
-      } transition-colors`}>
-        {isImporting ? (
-          <>
-            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-            <span>Importing...</span>
-          </>
-        ) : (
-          <>
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            <span>Import Data</span>
-          </>
-        )}
-        <input
-          type="file"
-          accept=".json"
-          onChange={handleImport}
-          disabled={isImporting}
-          className="hidden"
-        />
-      </label>
+    <div className="w-64 bg-white dark:bg-dark-surface rounded-2xl shadow-lg overflow-hidden border-2 border-blue-100 dark:border-dark-border transition-colors duration-300">
+      <div className="p-4 border-b border-gray-200 dark:border-dark-border">
+        <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300">
+          Data Management
+        </h3>
+      </div>
+
+      <div className="p-4 border-b border-gray-200 dark:border-dark-border">
+        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+          Import/Export
+        </h4>
+        <div className="space-y-2">
+          {/* Export Button */}
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="w-full py-3 px-4 flex items-center gap-2 bg-blue-50 hover:bg-blue-100 
+                    dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-800 dark:text-blue-200 
+                    rounded-md transition-colors"
+          >
+            <Download size={18} />
+            <div className="text-left flex-grow">
+              <div className="font-medium">{isExporting ? 'Exporting...' : 'Export Data'}</div>
+              <div className="text-xs text-blue-600 dark:text-blue-300">Save all dialogues as JSON</div>
+            </div>
+            {isExporting && (
+              <div className="animate-spin h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full"></div>
+            )}
+          </button>
+          
+          {/* Import Button */}
+          <label className="w-full py-3 px-4 flex items-center gap-2 bg-green-50 hover:bg-green-100 
+                          dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-800 dark:text-green-200 
+                          rounded-md transition-colors cursor-pointer">
+            <Upload size={18} />
+            <div className="text-left flex-grow">
+              <div className="font-medium">{isImporting ? 'Importing...' : 'Import Data'}</div>
+              <div className="text-xs text-green-600 dark:text-green-300">Load dialogues from file</div>
+            </div>
+            {isImporting && (
+              <div className="animate-spin h-4 w-4 border-2 border-green-600 dark:border-green-400 border-t-transparent rounded-full"></div>
+            )}
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              disabled={isImporting}
+              className="hidden"
+            />
+          </label>
+        </div>
+      </div>
       
       {/* Error Message */}
       {importError && (
-        <div className="mt-2 p-2 bg-red-100 dark:bg-red-900 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-md text-xs">
-          <div className="flex items-center gap-1">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{importError}</span>
+        <div className="p-4 border-t border-gray-200 dark:border-dark-border">
+          <div className="rounded-md bg-red-50 dark:bg-red-900/30 p-3 border border-red-200 dark:border-red-900/60">
+            <div className="flex items-center">
+              <AlertTriangle size={16} className="text-red-600 dark:text-red-400 mr-2" />
+              <span className="text-sm text-red-800 dark:text-red-200">{importError}</span>
+            </div>
           </div>
         </div>
       )}
