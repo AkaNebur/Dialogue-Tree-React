@@ -1,4 +1,4 @@
-// src/hooks/useDialogueManager.ts
+// src/hooks/useDialogueManager.ts - UPDATE with image handling functionality
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   applyNodeChanges,
@@ -32,12 +32,15 @@ type ConversationUpdater = (conv: Conversation) => Conversation;
 
 /**
  * Custom hook to manage NPCs, their conversations, and the active dialogue flow state.
- * Now with auto-save functionality.
+ * Now with name editing and image management functionality.
  */
 const useDialogueManager = (): UseDialogueManagerReturn & { 
   isSaving: boolean; 
   lastSaved: Date | null;
   isLoading: boolean;
+  updateNpcName: (npcId: string, newName: string) => void;
+  updateConversationName: (conversationId: string, newName: string) => void;
+  updateNpcImage: (npcId: string, imageDataUrl: string | undefined) => void;
 } => {
   // State initialization with loading status
   const [npcs, setNpcs] = useState<NPC[]>([]);
@@ -173,6 +176,40 @@ const useDialogueManager = (): UseDialogueManagerReturn & {
     }
   }, [npcs]); // Depend on npcs to find the npc correctly
 
+  // --- NPC Name Update Function ---
+  const updateNpcName = useCallback((npcId: string, newName: string) => {
+    if (!npcId || !newName.trim()) return;
+    
+    setNpcs((currentNpcs) =>
+      currentNpcs.map((npc) => {
+        if (npc.id === npcId) {
+          return {
+            ...npc,
+            name: newName.trim()
+          };
+        }
+        return npc;
+      })
+    );
+  }, []);
+  
+  // --- NEW: NPC Image Update Function ---
+  const updateNpcImage = useCallback((npcId: string, imageDataUrl: string | undefined) => {
+    if (!npcId) return;
+    
+    setNpcs((currentNpcs) =>
+      currentNpcs.map((npc) => {
+        if (npc.id === npcId) {
+          return {
+            ...npc,
+            image: imageDataUrl
+          };
+        }
+        return npc;
+      })
+    );
+  }, []);
+
   // --- Conversation Management ---
 
   const addConversation = useCallback((npcId: string, name: string) => {
@@ -203,6 +240,44 @@ const useDialogueManager = (): UseDialogueManagerReturn & {
   const selectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);
   }, []);
+
+  // --- Conversation Name Update Function ---
+  const updateConversationName = useCallback((conversationId: string, newName: string) => {
+    if (!conversationId || !newName.trim() || !selectedNpcId) return;
+    
+    setNpcs((currentNpcs) =>
+      currentNpcs.map((npc) => {
+        if (npc.id === selectedNpcId) {
+          return {
+            ...npc,
+            conversations: npc.conversations.map((conv) => {
+              if (conv.id === conversationId) {
+                return {
+                  ...conv,
+                  name: newName.trim(),
+                  // Also update the start node label if it exists and contains the old name
+                  nodes: conv.nodes.map(node => {
+                    if (node.type === 'input' && node.data.label.includes(conv.name)) {
+                      return {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          label: `Start: ${newName.trim()}`
+                        }
+                      };
+                    }
+                    return node;
+                  })
+                };
+              }
+              return conv;
+            }),
+          };
+        }
+        return npc;
+      })
+    );
+  }, [selectedNpcId]);
 
   // --- Active Dialogue Flow Handlers (for the selected conversation) ---
 
@@ -340,6 +415,10 @@ const useDialogueManager = (): UseDialogueManagerReturn & {
     onConnect,
     updateNodePositions,
     updateNodeLayout,
+    // Added name and image editing functions
+    updateNpcName,
+    updateConversationName,
+    updateNpcImage,
     // Added auto-save state
     isSaving,
     lastSaved,

@@ -35,12 +35,6 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
     setPositioningMode(currentLayout);
   }, [currentLayout]);
 
-  // Standard layout application (simplified)
-  const applyLayout = useCallback(() => {
-    onApplyLayout(positioningMode, { spacing });
-    setIsOpen(false);
-  }, [positioningMode, onApplyLayout, spacing]);
-
   // Special handler for direction toggle (horizontal/vertical)
   const handleDirectionToggle = useCallback(() => {
     if (onToggleDirection) {

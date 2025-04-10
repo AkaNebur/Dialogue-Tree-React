@@ -1,4 +1,4 @@
-// src/types/index.ts
+// src/types/index.ts - Updated with image property for NPCs
 import { Node, Edge, Position, XYPosition } from 'reactflow';
 import { OrderingStrategy } from '../components/Header/OrderSelector.tsx';
 
@@ -35,10 +35,11 @@ export interface Conversation {
   edges: DialogueEdge[];
 }
 
-// Define NPC structure
+// Define NPC structure with image property
 export interface NPC {
   id: string;
   name: string;
+  image?: string; // Profile image (data URL or path)
   conversations: Conversation[];
 }
 
@@ -74,6 +75,9 @@ export interface SidebarProps {
   onAddNpc: (name: string) => void;
   onSelectConversation: (conversationId: string) => void;
   onAddConversation: (npcId: string, name: string) => void;
+  onUpdateNpcName?: (npcId: string, newName: string) => void;
+  onUpdateConversationName?: (conversationId: string, newName: string) => void;
+  onUpdateNpcImage?: (npcId: string, imageDataUrl: string) => void;
 }
 
 export interface HeaderProps {

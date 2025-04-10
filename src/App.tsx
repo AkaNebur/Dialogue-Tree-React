@@ -1,4 +1,4 @@
-// src/App.tsx - Updated with IdManager integration
+// src/App.tsx - Updated to include NPC image editing functionality
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 
@@ -14,8 +14,8 @@ import NodePositioner from './components/NodePositioner';
 import CardSidebar from './components/CardSidebar';
 import AutoSaveIndicator from './components/AutoSaveIndicator';
 import DataActions from './components/DataActions';
-import IdManagerInitializer from './components/IdManagerInitializer'; // Import the ID manager initializer
-import IdDebugger from './components/IdDebugger'; // Optional: Import ID debugger
+import IdManagerInitializer from './components/IdManagerInitializer'; 
+import IdDebugger from './components/IdDebugger'; 
 
 // Utilities
 import { calculateNodePositions, PositioningMode } from './utils/nodePositioning';
@@ -25,7 +25,7 @@ import { calculateDagreLayout } from './utils/dagreLayout';
 import './styles/index.css';
 
 /**
- * Main application component with IdManager integration
+ * Main application component with NPC image editing functionality
  */
 const App: React.FC = () => {
   const autoLayoutRef = useRef<(() => void) | null>(null);
@@ -41,7 +41,7 @@ const App: React.FC = () => {
     gridColumns: 3
   });
 
-  // Use the enhanced Dialogue Manager hook with auto-save
+  // Use the enhanced Dialogue Manager hook with auto-save and name/image editing
   const {
     npcs,
     selectedNpcId,
@@ -59,6 +59,10 @@ const App: React.FC = () => {
     onConnect,
     updateNodePositions,
     updateNodeLayout,
+    // Name and image editing functions
+    updateNpcName,
+    updateConversationName,
+    updateNpcImage,
     // Auto-save related properties
     isSaving,
     lastSaved,
@@ -296,7 +300,7 @@ const App: React.FC = () => {
         />
       </div>
       
-      {/* Floating Card Sidebar */}
+      {/* Floating Card Sidebar with name and image editing functionality */}
       <div className="absolute top-4 left-4 z-20 transition-all duration-300">
         <CardSidebar
           npcs={npcs}
@@ -306,6 +310,9 @@ const App: React.FC = () => {
           onAddNpc={addNpc}
           onSelectConversation={selectConversation}
           onAddConversation={addConversation}
+          onUpdateNpcName={updateNpcName}
+          onUpdateConversationName={updateConversationName}
+          onUpdateNpcImage={updateNpcImage}
         />
       </div>
 
