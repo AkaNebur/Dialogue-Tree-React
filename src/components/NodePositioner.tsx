@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ArrowDown, ArrowRight, GitBranch } from 'lucide-react';
+import { ArrowDown, ArrowRight, GitFork } from 'lucide-react';
 import { PositioningMode } from '../utils/nodePositioning';
 
 
@@ -90,55 +90,16 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
   }, [onApplyLayout, spacing, onFitView]);
 
   // Layout options with icons and descriptions - simplified to only include needed options
-  const layoutOptions = [
-    { 
-      mode: 'horizontal', 
-      icon: <ArrowRight size={18} />, 
-      label: 'Horizontal Flow', 
-      description: 'Arrange nodes in horizontal levels',
-      isDirectionOption: true,
-      active: isHorizontal
-    },
-    { 
-      mode: 'vertical', 
-      icon: <ArrowDown size={18} />, 
-      label: 'Vertical Flow', 
-      description: 'Arrange nodes in vertical columns',
-      isDirectionOption: true,
-      active: !isHorizontal
-    },
-    // Dagre as the main layout option
-    { 
-      mode: 'dagre', 
-      icon: <GitBranch size={18} />, 
-      label: 'Smart Layout', 
-      description: 'Optimized node positioning with Dagre',
-      isDirectionOption: false,
-      highlight: true
-    }
-  ];
-
-  // Find current option for the button display
-  const currentOption = layoutOptions.find(opt => {
-    if (positioningMode === 'dagre') {
-      return opt.mode === 'dagre';
-    }
-    if (opt.isDirectionOption) {
-      return (opt.mode === 'horizontal' && isHorizontal) || 
-             (opt.mode === 'vertical' && !isHorizontal);
-    }
-    return opt.mode === positioningMode;
-  }) || layoutOptions[0];
 
   return (
     <div className="relative">
-      {/* Main button showing current layout mode */}
+      {/* Main button showing git-fork logo regardless of current layout mode */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-3 text-white bg-yellow-600 hover:bg-yellow-700 rounded-full transition-colors shadow-md flex items-center justify-center"
-        title={`Node positioning: ${currentOption?.label || 'Layout Options'}`}
+        title="Node positioning options"
       >
-        {currentOption?.icon || <GitBranch size={20} />}
+        <GitFork size={20} />
       </button>
 
       {/* Dropdown panel with layout options - CENTERED with the button */}
@@ -189,7 +150,7 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
                       dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 
                       rounded-md transition-colors"
             >
-              <GitBranch size={18} />
+              <GitFork size={18} />
               <div className="text-left">
                 <div className="font-medium">Smart Layout</div>
                 <div className="text-xs text-yellow-600 dark:text-yellow-300">Intelligently organizes nodes with minimal crossings</div>
@@ -209,19 +170,16 @@ const NodePositioner: React.FC<NodePositionerProps> = ({
                   min="80" 
                   max="300" 
                   value={spacing} 
-                  onChange={(e) => setSpacing(Number(e.target.value))} 
+                  onChange={(e) => {
+                    const newSpacing = Number(e.target.value);
+                    setSpacing(newSpacing);
+                    onApplyLayout(positioningMode, { spacing: newSpacing });
+                  }} 
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
                 />
                 <span className="ml-2 text-xs text-gray-600 dark:text-gray-400 w-8">{spacing}px</span>
               </div>
             </div>
-
-            <button
-              onClick={applyLayout}
-              className="w-full mt-3 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md transition-colors text-sm font-medium shadow-md"
-            >
-              Apply Layout
-            </button>
           </div>
         </div>
       )}
