@@ -1,3 +1,4 @@
+// src/components/DialogueFlow/index.tsx
 import React, { useEffect, memo, useCallback, useRef } from 'react';
 import ReactFlow, {
   MiniMap,
@@ -5,7 +6,7 @@ import ReactFlow, {
   Background,
   useReactFlow,
   Position,
-  NodeTypes,
+  NodeTypes, // <-- Import NodeTypes
   OnConnectStart,
   OnConnectEnd,
   BackgroundVariant,
@@ -13,15 +14,24 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import DialogueNode from './DialogueNode';
+// --- Import Existing and New Nodes ---
+import DialogueNode from './DialogueNode'; // Your original node
+import UserNode from './UserNode';       // New User Node
+import NpcNode from './NpcNode';         // New NPC Node
+// --- ---
+
 import { useFlowData } from '../../store/dialogueStore';
 import { getNextNodeId } from '../../constants/initialData';
 import { DialogueNode as DialogueNodeType, DialogueEdge } from '../../types';
 
+// --- Define nodeTypes including the new ones ---
 const nodeTypes: NodeTypes = {
-  custom: DialogueNode,
-  input: DialogueNode,
+  custom: DialogueNode, // Keep existing generic 'custom' node if needed elsewhere
+  input: DialogueNode,  // Start node uses the default DialogueNode styling for now
+  user: UserNode,     // Register the 'user' type
+  npc: NpcNode,       // Register the 'npc' type
 };
+// --- ---
 
 interface ConnectingNodeRef {
   nodeId: string;
@@ -86,11 +96,21 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
         const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
         const newNodeId = getNextNodeId();
+
+        // --- Determine new node type (e.g., based on source or tool selection) ---
+        // TODO: This is where you'd decide if the new node is 'user' or 'npc'.
+        // For now, let's default to 'npc' as an example if dragging from start,
+        // and 'user' if dragging from another node. This logic needs refinement!
+        const sourceNode = reactFlowInstance.getNode(sourceNodeId);
+        const newNodeType = sourceNode?.type === 'input' ? 'npc' : 'user'; // Example logic
+        // --- ---
+
         const newNode: DialogueNodeType = {
           id: newNodeId,
-          type: 'custom',
+          type: newNodeType, // <-- Assign the type here ('user' or 'npc')
           position,
-          data: { label: `New Response ${newNodeId}`, className: 'node-more' },
+          // Adjust label based on type for clarity
+          data: { label: `New ${newNodeType === 'npc' ? 'NPC' : 'User'} Response ${newNodeId}` },
           sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
           targetPosition: isHorizontal ? Position.Left : Position.Top,
         };
@@ -118,7 +138,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
       onConnectStart={handleConnectStart}
       onConnect={onConnect}
       onConnectEnd={handleConnectEnd}
-      nodeTypes={nodeTypes}
+      nodeTypes={nodeTypes} // <-- Pass the updated nodeTypes map
       attributionPosition="bottom-right"
       className="dialogue-flow-canvas transition-colors duration-300"
       defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
