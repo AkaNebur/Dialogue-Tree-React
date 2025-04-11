@@ -19,6 +19,8 @@ import { useDialogueStore } from './store/dialogueStore';
 import { calculateDagreLayout } from './utils/dagreLayout';
 import { PositioningMode } from './types';
 
+import Toolbar from './components/Toolbar';
+
 import './styles/index.css';
 
 const App: React.FC = () => {
@@ -188,6 +190,11 @@ const App: React.FC = () => {
             </div>
          </div>
       )}
+
+      {/* Toolbar */}
+<div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30">
+  <Toolbar />
+</div>
 
       {/* Main Flow Area */}
       <div className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
