@@ -12,20 +12,29 @@ import CardSidebar from './components/CardSidebar';
 import AutoSaveIndicator from './components/AutoSaveIndicator';
 import DataActions from './components/DataActions';
 import DatabaseManager from './components/DatabaseManager';
+import Toolbar from './components/Toolbar';
+import EditModal from './components/EditModal'; // Import EditModal
+import InfoModal from './components/InfoModal'; // Import InfoModal
 
 // Import store and specific state/actions needed HERE
-import { useDialogueStore } from './store/dialogueStore';
+import { useDialogueStore, useSidebarData } from './store/dialogueStore'; // Import useSidebarData
 
 import { calculateDagreLayout } from './utils/dagreLayout';
-import { PositioningMode } from './types';
-
-import Toolbar from './components/Toolbar';
+import { PositioningMode, NPC } from './types'; // Import NPC type
 
 import './styles/index.css';
 
+// Define types for Edit Modal state
+interface EditModalState {
+  isOpen: boolean;
+  entityType: 'NPC' | 'Dialogue';
+  entityId: string;
+  currentName: string;
+  currentImage?: string;
+}
+
 const App: React.FC = () => {
   const fitViewRef = useRef<(() => void) | null>(null);
-  // Removed isInitialLayoutDone ref as it wasn't strictly needed for the fix
 
   // Get state and actions from Zustand store
   const loadInitialData = useDialogueStore(state => state.loadInitialData);
@@ -34,15 +43,34 @@ const App: React.FC = () => {
   const isLoading = useDialogueStore(state => state.isLoading);
   const isSaving = useDialogueStore(state => state.isSaving);
   const selectedConversationId = useDialogueStore(state => state.selectedConversationId);
-  // We get length here for dependency, fetch actual nodes/edges inside effect
   const activeNodesLength = useDialogueStore(state => state.activeNodes().length);
   const activeEdgesLength = useDialogueStore(state => state.activeEdges().length);
 
+  // Get sidebar actions directly from store hook
+  const {
+      deleteNpc,
+      deleteConversation,
+      updateNpcName,
+      updateConversationName,
+      updateNpcImage,
+  } = useSidebarData();
 
-  // UI State
+
+  // --- UI State ---
   const [isDataManagementVisible, setIsDataManagementVisible] = useState<boolean>(false);
   const [, setPositioningMode] = useState<PositioningMode>('dagre');
   const [layoutOptions, setLayoutOptions] = useState({ spacing: 150 });
+
+  // --- Modal States (Lifted from CardSidebar) ---
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
+  const [editModalState, setEditModalState] = useState<EditModalState>({
+    isOpen: false,
+    entityType: 'NPC',
+    entityId: '',
+    currentName: '',
+    currentImage: undefined,
+  });
+  // --- ---
 
   // Layout Toggle Hook
   const { isHorizontal, toggleLayout, setLayout } = useLayoutToggle(
@@ -77,29 +105,27 @@ const App: React.FC = () => {
     setPositioningMode(mode);
     if (mode === 'dagre') {
       const newSpacing = options.spacing !== undefined ? options.spacing : layoutOptions.spacing;
-      // Update local state ONLY if needed, let effect handle layout application
       if (newSpacing !== layoutOptions.spacing) {
          setLayoutOptions({ spacing: newSpacing });
       } else {
-         // If spacing hasn't changed, force apply layout now by fetching current state
          const currentNodes = useDialogueStore.getState().activeNodes();
          const currentEdges = useDialogueStore.getState().activeEdges();
          if (currentNodes.length > 0) {
            console.log(`[App] Manually applying Dagre layout. Direction: ${isHorizontal ? 'LR' : 'TB'}, Spacing: ${newSpacing}`);
            const dagreDirection = isHorizontal ? 'LR' : 'TB';
            const newPositions = calculateDagreLayout(currentNodes, currentEdges, dagreDirection, newSpacing);
-           updateNodePositions(newPositions); // Update store
-           setTimeout(triggerFitView, 150); // Fit view after update
+           updateNodePositions(newPositions);
+           setTimeout(triggerFitView, 150);
          }
       }
     }
-  }, [layoutOptions.spacing, isHorizontal, updateNodePositions, triggerFitView]); // Keep dependencies needed for the function itself
+  }, [layoutOptions.spacing, isHorizontal, updateNodePositions, triggerFitView]);
 
 
   // System Dark Mode Listener
   useEffect(() => {
     const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!mediaQuery) return; // Guard for environments without matchMedia
+    if (!mediaQuery) return;
     const handleChange = (e: MediaQueryListEvent) => {
         if (e.matches !== isDarkMode) {
             toggleTheme();
@@ -112,7 +138,6 @@ const App: React.FC = () => {
   // Save Before Unload Confirmation
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      // Access latest saving state directly from store inside the handler
       if (useDialogueStore.getState().isSaving) {
         event.preventDefault();
         event.returnValue = 'Changes are still saving. Are you sure you want to leave?';
@@ -120,7 +145,7 @@ const App: React.FC = () => {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []); // No dependencies needed, it accesses fresh state via getState
+  }, []);
 
   // Data Import Handler (simple reload)
   const handleDataImported = useCallback(() => {
@@ -132,52 +157,80 @@ const App: React.FC = () => {
     fitViewRef.current = fitViewFn;
   }, []);
 
-  // --- Automatic Layout Application Effect (FIXED) ---
+  // --- Automatic Layout Application Effect ---
   useEffect(() => {
-    // Skip if loading or no nodes
     if (isLoading || activeNodesLength === 0) {
       console.log("[App Layout Effect] Skipping layout:", isLoading ? "Loading" : "No nodes");
       return;
     }
-
     console.log("[App Layout Effect] Applying layout.");
-    // Get the current nodes/edges INSIDE the effect
     const currentNodes = useDialogueStore.getState().activeNodes();
     const currentEdges = useDialogueStore.getState().activeEdges();
-
-    // Check again in case state changed between render and effect execution
     if (currentNodes.length === 0) {
         console.log("[App Layout Effect] Skipping layout: Nodes became empty.");
         return;
     }
-
     const dagreDirection = isHorizontal ? 'LR' : 'TB';
     const spacing = layoutOptions.spacing;
-
     const newPositions = calculateDagreLayout(currentNodes, currentEdges, dagreDirection, spacing);
-
-    // Only update if newPositions is not empty (layout succeeded)
     if (Object.keys(newPositions).length > 0) {
-        updateNodePositions(newPositions); // Call store action to update positions
-        setTimeout(triggerFitView, 150); // Fit view after a short delay
+        updateNodePositions(newPositions);
+        setTimeout(triggerFitView, 150);
     } else {
         console.warn("[App Layout Effect] Dagre layout returned empty positions.");
     }
+  }, [
+      isLoading, selectedConversationId, isHorizontal, layoutOptions.spacing,
+      activeNodesLength, activeEdgesLength, updateNodePositions, triggerFitView
+    ]);
 
-  }, [ // --- FIXED DEPENDENCIES ---
-      isLoading,
-      selectedConversationId, // Re-layout when conversation changes
-      isHorizontal,            // Re-layout when direction changes
-      layoutOptions.spacing,   // Re-layout when spacing changes
-      activeNodesLength,       // Re-layout when number of nodes changes
-      activeEdgesLength,       // Re-layout when number of edges changes
-      // Include actions used inside the effect if they are stable references (Zustand actions usually are)
-      updateNodePositions,
-      triggerFitView
-    ]); // REMOVED activeNodes, activeEdges OBJECTS from dependencies
+  // --- Modal Handling Functions ---
+  const handleOpenInfoModal = useCallback(() => {
+    setIsInfoModalOpen(true);
+  }, []);
 
+  const handleCloseInfoModal = useCallback(() => {
+    setIsInfoModalOpen(false);
+  }, []);
+
+  const handleOpenEditModal = useCallback((type: 'NPC' | 'Dialogue', id: string, name: string, image?: string) => {
+      setEditModalState({
+          isOpen: true,
+          entityType: type,
+          entityId: id,
+          currentName: name,
+          currentImage: image,
+      });
+  }, []);
+
+  const handleCloseEditModal = useCallback(() => {
+      setEditModalState(prev => ({ ...prev, isOpen: false }));
+  }, []);
+
+  const handleSaveChanges = useCallback((newName: string, imageDataUrl?: string) => {
+    const { entityType, entityId } = editModalState;
+    if (entityType === 'NPC') {
+       updateNpcName(entityId, newName);
+       updateNpcImage(entityId, imageDataUrl);
+    } else if (entityType === 'Dialogue') {
+       updateConversationName(entityId, newName);
+    }
+    handleCloseEditModal();
+  }, [editModalState, updateNpcName, updateNpcImage, updateConversationName, handleCloseEditModal]);
+
+  const handleDeleteEntity = useCallback(() => {
+    const { entityType, entityId } = editModalState;
+    if (entityType === 'NPC') {
+      deleteNpc(entityId);
+    } else if (entityType === 'Dialogue') {
+      deleteConversation(entityId);
+    }
+    handleCloseEditModal();
+  }, [editModalState, deleteNpc, deleteConversation, handleCloseEditModal]);
+  // --- ---
 
   return (
+    // Ensure the main container has position relative for z-index context
     <div className={`w-screen h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
       <DatabaseManager />
 
@@ -192,9 +245,9 @@ const App: React.FC = () => {
       )}
 
       {/* Toolbar */}
-<div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30">
-  <Toolbar />
-</div>
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30">
+        <Toolbar />
+      </div>
 
       {/* Main Flow Area */}
       <div className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
@@ -227,7 +280,11 @@ const App: React.FC = () => {
 
       {/* Sidebar */}
       <div className="absolute top-4 left-4 z-20">
-         <CardSidebar />
+         {/* Pass modal opening functions down */}
+         <CardSidebar
+            onOpenInfoModal={handleOpenInfoModal}
+            onOpenEditModal={handleOpenEditModal}
+         />
       </div>
 
       {/* Data Management Panel */}
@@ -239,6 +296,23 @@ const App: React.FC = () => {
 
       {/* Auto Save Indicator */}
       <AutoSaveIndicator />
+
+      {/* --- Render Modals at Top Level --- */}
+      <InfoModal
+        isOpen={isInfoModalOpen}
+        onClose={handleCloseInfoModal}
+      />
+      <EditModal
+        isOpen={editModalState.isOpen}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveChanges}
+        onDelete={handleDeleteEntity}
+        title={`Edit ${editModalState.entityType} ${editModalState.entityType === 'NPC' ? 'Profile' : 'Name'}`}
+        currentName={editModalState.currentName}
+        currentImage={editModalState.currentImage}
+        entityType={editModalState.entityType}
+      />
+      {/* --- --- */}
     </div>
   );
 };

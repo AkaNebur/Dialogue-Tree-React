@@ -1,35 +1,46 @@
 import React, { useState } from 'react';
-import { Plus, Settings, User } from 'lucide-react';
-import EditModal from '../EditModal';
+import { Plus, Settings, User, Info } from 'lucide-react';
+// import EditModal from '../EditModal'; // No longer needed here
+// import InfoModal from '../InfoModal'; // No longer needed here
 import { useSidebarData } from '../../store/dialogueStore';
 
-const CardSidebar: React.FC = () => {
+// --- Define Props for opening modals ---
+interface CardSidebarProps {
+  onOpenInfoModal: () => void;
+  onOpenEditModal: (type: 'NPC' | 'Dialogue', id: string, name: string, image?: string) => void;
+}
+// --- ---
+
+const CardSidebar: React.FC<CardSidebarProps> = ({ onOpenInfoModal, onOpenEditModal }) => { // Destructure props
   const {
     npcs,
     selectedNpcId,
     selectedConversationId,
     selectNpc,
     addNpc,
-    deleteNpc,
+    // deleteNpc, // Handled in App via modal
     selectConversation,
     addConversation,
-    deleteConversation,
-    updateNpcName,
-    updateConversationName,
-    updateNpcImage,
+    // deleteConversation, // Handled in App via modal
+    // updateNpcName, // Handled in App via modal
+    // updateConversationName, // Handled in App via modal
+    // updateNpcImage, // Handled in App via modal
     selectedNpc: selectedNpcData,
-  } = useSidebarData();
+  } = useSidebarData(); // Removed actions handled by App
 
   const [newNpcName, setNewNpcName] = useState<string>('');
   const [newConversationName, setNewConversationName] = useState<string>('');
   const [isAddingNpc, setIsAddingNpc] = useState<boolean>(false);
   const [isAddingConversation, setIsAddingConversation] = useState<boolean>(false);
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [editingEntityType, setEditingEntityType] = useState<'NPC' | 'Dialogue'>('NPC');
-  const [editingEntityId, setEditingEntityId] = useState<string>('');
-  const [editingEntityName, setEditingEntityName] = useState<string>('');
-  const [editingEntityImage, setEditingEntityImage] = useState<string | undefined>(undefined);
+  // --- Remove local modal state ---
+  // const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  // const [editingEntityType, setEditingEntityType] = useState<'NPC' | 'Dialogue'>('NPC');
+  // const [editingEntityId, setEditingEntityId] = useState<string>('');
+  // const [editingEntityName, setEditingEntityName] = useState<string>('');
+  // const [editingEntityImage, setEditingEntityImage] = useState<string | undefined>(undefined);
+  // const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
+  // --- ---
 
   const selectedNpc = selectedNpcData;
 
@@ -51,45 +62,42 @@ const CardSidebar: React.FC = () => {
     }
   };
 
+  // --- Update Edit handlers to call props ---
   const handleEditNpc = (npcId: string, name: string, image?: string) => {
-    setEditingEntityType('NPC');
-    setEditingEntityId(npcId);
-    setEditingEntityName(name);
-    setEditingEntityImage(image);
-    setIsEditModalOpen(true);
+    onOpenEditModal('NPC', npcId, name, image);
   };
 
   const handleEditConversation = (conversationId: string, name: string) => {
-    setEditingEntityType('Dialogue');
-    setEditingEntityId(conversationId);
-    setEditingEntityName(name);
-    setEditingEntityImage(undefined);
-    setIsEditModalOpen(true);
+    onOpenEditModal('Dialogue', conversationId, name);
   };
+  // --- ---
 
-  const handleSaveChanges = (newName: string, imageDataUrl?: string) => {
-    if (editingEntityType === 'NPC') {
-       updateNpcName(editingEntityId, newName);
-       updateNpcImage(editingEntityId, imageDataUrl);
-    } else if (editingEntityType === 'Dialogue') {
-       updateConversationName(editingEntityId, newName);
-    }
-    setIsEditModalOpen(false);
-  };
-
-  const handleDeleteEntity = () => {
-    if (editingEntityType === 'NPC') {
-      deleteNpc(editingEntityId);
-    } else if (editingEntityType === 'Dialogue') {
-      deleteConversation(editingEntityId);
-    }
-    setIsEditModalOpen(false);
-  };
+  // --- Remove modal save/delete handlers ---
+  // const handleSaveChanges = ...
+  // const handleDeleteEntity = ...
+  // --- ---
 
   return (
     <>
+      {/* Top buttons for options and info */}
+      <div className="flex justify-center mb-4 px-1 w-64 gap-2">
+        <button
+          className="bg-blue-50 hover:bg-blue-100 dark:bg-dark-surface dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl p-2 transition-colors shadow-lg border border-blue-100 dark:border-dark-border"
+          title="Options (Not Implemented)" // Updated title slightly
+        >
+          <Settings size={18} />
+        </button>
+        <button
+          onClick={onOpenInfoModal} // <-- Use prop function
+          className="bg-blue-50 hover:bg-blue-100 dark:bg-dark-surface dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl p-2 transition-colors shadow-lg border border-blue-100 dark:border-dark-border"
+          title="Info & Shortcuts"
+        >
+          <Info size={18} />
+        </button>
+      </div>
+
+      {/* NPCs Card */}
       <div className="flex flex-col gap-4">
-        {/* NPCs Card */}
         <div className="card-sidebar rounded-xl shadow-lg bg-blue-50 dark:bg-dark-surface p-3 border border-blue-100 dark:border-dark-border w-64 transition-colors duration-300">
           <div className="flex justify-between items-center mb-2 px-1">
             <h2 className="card-sidebar-title text-lg font-semibold text-gray-700 dark:text-gray-300">NPCs</h2>
@@ -184,17 +192,7 @@ const CardSidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit Modal */}
-      <EditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveChanges}
-        onDelete={handleDeleteEntity}
-        title={`Edit ${editingEntityType} ${editingEntityType === 'NPC' ? 'Profile' : 'Name'}`}
-        currentName={editingEntityName}
-        currentImage={editingEntityImage}
-        entityType={editingEntityType}
-      />
+      {/* Modals are no longer rendered here */}
     </>
   );
 };
