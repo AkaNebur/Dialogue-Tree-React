@@ -1,26 +1,41 @@
 // src/components/DialogueFlow/DialogueNode.tsx
 import React from 'react';
-import { Handle, Position } from 'reactflow';
-import { DialogueNodeProps } from '../../types';
+import { Handle, Position, NodeProps } from 'reactflow';
+import { DialogueNodeData } from '../../types'; // Adjust path if necessary
 
-/**
- * Custom node component for dialogue tree with better dark mode support
- */
-const DialogueNodeComponent: React.FC<DialogueNodeProps> = ({
+interface DialogueNodeComponentProps extends NodeProps<DialogueNodeData> {}
+
+const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
   data,
   isConnectable,
   sourcePosition = Position.Right,
   targetPosition = Position.Left,
   type, // Used to check if it's a start node
+  selected, // Destructure the selected prop
 }) => {
-  // Access className from the data object
+  // --- Get the specific className from data (e.g., 'node-start', 'node-hello') ---
   const nodeClassName = data.className || '';
 
-  // Apply dialogue-node class to all nodes EXCEPT the start node (input type)
+  // --- Determine the base class (apply 'dialogue-node' only to non-start nodes) ---
   const baseClassName = type === 'input' ? '' : 'dialogue-node';
-  
+
+  // --- Combine all classes ---
+  const nodeContainerClasses = [
+    baseClassName, // Will be empty for start node, 'dialogue-node' for others
+    nodeClassName, // <<< CRUCIAL: This adds 'node-start' or 'node-hello', etc.
+    'transition-all',
+    'duration-200',
+    'hover:shadow-lg',
+    // Apply selection styles conditionally
+    selected
+      ? 'border-2 border-blue-500 dark:border-blue-400 ring-2 ring-offset-1 ring-blue-500 dark:ring-blue-400 ring-offset-white dark:ring-offset-dark-bg'
+      : '', // Remove the default 'border' here if base/nodeClassName already defines one
+             // If your .node-start and .dialogue-node already have 'border' or 'border-2', etc., you don't need the fallback 'border' here.
+             // Let's assume they do, and remove the fallback 'border'
+  ].filter(Boolean).join(' '); // Filter out empty strings and join
+
   return (
-    <div className={`${baseClassName} ${nodeClassName} transition-all duration-200 hover:shadow-lg`}>
+    <div className={nodeContainerClasses}> {/* Apply combined classes */}
       {/* Target handle (input connection) - only render if not a start node */}
       {type !== 'input' && (
         <Handle
@@ -47,7 +62,6 @@ const DialogueNodeComponent: React.FC<DialogueNodeProps> = ({
   );
 };
 
-// Use React.memo after the component is defined to avoid circular reference
 const DialogueNode = React.memo(DialogueNodeComponent);
 
 export default DialogueNode;
