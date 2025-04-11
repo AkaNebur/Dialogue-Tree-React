@@ -1,3 +1,4 @@
+// File: src/types/index.ts
 import { Node, Edge, Position, XYPosition, NodeChange, EdgeChange, Connection } from 'reactflow';
 
 export type PositioningMode = 'dagre' | 'manual';
@@ -17,8 +18,9 @@ export interface LayoutConstants {
 }
 
 export interface DialogueNodeData {
-  label: string;
+  label: string; // This will now act as the node's title/identifier in the header
   className?: string;
+  text?: string; // New field for the body content
 }
 
 export type DialogueNode = Node<DialogueNodeData>;

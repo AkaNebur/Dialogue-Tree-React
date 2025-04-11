@@ -1,3 +1,4 @@
+// File: src/components/DialogueFlow/index.tsx
 import React, { useEffect, memo, useCallback, useRef } from 'react';
 import ReactFlow, {
   MiniMap,
@@ -14,6 +15,10 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import DialogueNode from './DialogueNode';
+import UserNode from './UserNode';
+import NpcNode from './NpcNode';
+import { ToolType } from '../Toolbar';
+
 import { useFlowData } from '../../store/dialogueStore';
 import { getNextNodeId } from '../../constants/initialData';
 import { DialogueNode as DialogueNodeType, DialogueEdge } from '../../types';
@@ -21,6 +26,8 @@ import { DialogueNode as DialogueNodeType, DialogueEdge } from '../../types';
 const nodeTypes: NodeTypes = {
   custom: DialogueNode,
   input: DialogueNode,
+  user: UserNode,
+  npc: NpcNode,
 };
 
 interface ConnectingNodeRef {
@@ -32,11 +39,13 @@ interface ConnectingNodeRef {
 interface DialogueFlowProps {
     isHorizontal: boolean;
     onFitViewInitialized: (fitViewFn: () => void) => void;
+    currentTool: ToolType | null;
 }
 
 const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
   isHorizontal,
   onFitViewInitialized,
+  currentTool,
 }) => {
   const {
     nodes,
@@ -72,7 +81,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
   const handleConnectEnd: OnConnectEnd = useCallback(
     (event) => {
       const connectingInfo = connectingNode.current;
-      connectingNode.current = null; // Clear ref immediately
+      connectingNode.current = null;
 
       if (!event || !('clientX' in event) || !('clientY' in event) || !connectingInfo || !reactFlowInstance) {
         return;
@@ -86,11 +95,36 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
         const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
         const newNodeId = getNextNodeId();
+
+        let newNodeType: 'user' | 'npc' | 'custom' | 'input';
+        let newNodeLabelPrefix: string;
+
+        if (currentTool === 'user') {
+          newNodeType = 'user';
+          newNodeLabelPrefix = 'User Response';
+        } else if (currentTool === 'npc') {
+          newNodeType = 'npc';
+          newNodeLabelPrefix = 'NPC Response';
+        } else {
+          const sourceNode = reactFlowInstance.getNode(sourceNodeId);
+          if (sourceNode?.type === 'input') {
+              newNodeType = 'npc';
+              newNodeLabelPrefix = 'NPC Response';
+          } else {
+              newNodeType = 'user';
+              newNodeLabelPrefix = 'User Response';
+          }
+          console.log(`No specific node tool selected, defaulting new node type to: ${newNodeType}`);
+        }
+
         const newNode: DialogueNodeType = {
           id: newNodeId,
-          type: 'custom',
+          type: newNodeType,
           position,
-          data: { label: `New Response ${newNodeId}`, className: 'node-more' },
+          data: {
+            label: `${newNodeLabelPrefix} ${newNodeId}`,
+            text: '', // Initialize text field
+          },
           sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
           targetPosition: isHorizontal ? Position.Left : Position.Top,
         };
@@ -106,7 +140,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
         setEdges((eds) => [...eds, newEdge]);
       }
     },
-    [reactFlowInstance, setNodes, setEdges, isHorizontal] // Include store actions and prop
+    [reactFlowInstance, setNodes, setEdges, isHorizontal, currentTool]
   );
 
   return (

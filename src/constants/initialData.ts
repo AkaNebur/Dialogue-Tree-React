@@ -1,6 +1,7 @@
+// File: src/constants/initialData.ts
 import { Position } from 'reactflow';
-import { NodeDimensions, LayoutConstants, DialogueNode, DialogueEdge, NPC, Conversation } from '../types';
-import IdManager from '../utils/IdManager'; // Import the instance
+import { NodeDimensions, LayoutConstants, DialogueNode, DialogueEdge, NPC, Conversation, DialogueNodeData } from '../types';
+import IdManager from '../utils/IdManager';
 
 export const NODE_DIMENSIONS: NodeDimensions = {
   WIDTH: 150,
@@ -38,6 +39,7 @@ export const createInitialConversationData = (conversationName = "New Conversati
         data: {
           label: `Start: ${conversationName}`,
           className: 'node-start',
+          text: `This is the starting point of the '${conversationName}' dialogue.`, // Optional text for start node
         },
         position: { x: 250, y: 50 },
         sourcePosition: Position.Right,

@@ -1,27 +1,33 @@
-// src/components/DialogueFlow/DialogueNode.tsx
 import React from 'react';
-import { Handle, Position } from 'reactflow';
-import { DialogueNodeProps } from '../../types';
+import { Handle, Position, NodeProps } from 'reactflow';
+import { DialogueNodeData } from '../../types';
 
-/**
- * Custom node component for dialogue tree with better dark mode support
- */
-const DialogueNodeComponent: React.FC<DialogueNodeProps> = ({
+interface DialogueNodeComponentProps extends NodeProps<DialogueNodeData> {}
+
+const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
   data,
   isConnectable,
   sourcePosition = Position.Right,
   targetPosition = Position.Left,
-  type, // Used to check if it's a start node
+  type,
+  selected,
 }) => {
-  // Access className from the data object
   const nodeClassName = data.className || '';
+  const baseClassName = type === 'input' ? '' : 'dialogue-node'; // Generic class for non-specific custom nodes
 
-  // Apply dialogue-node class to all nodes EXCEPT the start node (input type)
-  const baseClassName = type === 'input' ? '' : 'dialogue-node';
-  
+  const nodeContainerClasses = [
+    baseClassName,
+    nodeClassName,
+    'transition-all',
+    'duration-200',
+    'hover:shadow-lg',
+    selected
+      ? 'border-2 border-blue-500 dark:border-blue-400 ring-2 ring-offset-1 ring-blue-500 dark:ring-blue-400 ring-offset-white dark:ring-offset-dark-bg'
+      : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className={`${baseClassName} ${nodeClassName} transition-all duration-200 hover:shadow-lg`}>
-      {/* Target handle (input connection) - only render if not a start node */}
+    <div className={nodeContainerClasses}>
       {type !== 'input' && (
         <Handle
           type="target"
@@ -31,12 +37,10 @@ const DialogueNodeComponent: React.FC<DialogueNodeProps> = ({
         />
       )}
 
-      {/* Node content */}
-      <div className="text-sm font-medium">
+      <div className="text-sm font-medium w-full"> {/* w-full was already here */}
         {data.label}
       </div>
 
-      {/* Source handle (output connection) */}
       <Handle
         type="source"
         position={sourcePosition}
@@ -47,7 +51,6 @@ const DialogueNodeComponent: React.FC<DialogueNodeProps> = ({
   );
 };
 
-// Use React.memo after the component is defined to avoid circular reference
 const DialogueNode = React.memo(DialogueNodeComponent);
 
 export default DialogueNode;

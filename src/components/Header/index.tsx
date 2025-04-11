@@ -1,20 +1,15 @@
-// src/components/Header/index.tsx - Removed layout toggle button and order selector
 import React, { memo } from 'react';
 import { Moon, Sun, Database, X } from 'lucide-react';
-// OrderSelector import removed
 
 interface HeaderProps {
   isDarkMode?: boolean;
   onToggleTheme?: () => void;
   isDataManagementVisible?: boolean;
   onToggleDataManagement?: () => void;
-  // Node ordering props removed
 }
 
 /**
  * Floating header with theme toggle and data management
- * Layout toggle has been moved to NodePositioner
- * Order selector has been removed
  */
 const Header: React.FC<HeaderProps> = memo(({
   isDarkMode = false,
@@ -22,18 +17,19 @@ const Header: React.FC<HeaderProps> = memo(({
   isDataManagementVisible = false,
   onToggleDataManagement,
 }) => {
+  // Define the common style matching CardSidebar top buttons
+  const commonButtonClasses = "bg-blue-50 hover:bg-blue-100 dark:bg-dark-surface dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl p-2 transition-colors shadow-lg border-2 border-blue-100 dark:border-dark-border";
+
   return (
     <div className="flex space-x-3">
-      {/* Node ordering selector removed */}
-
       {/* Theme toggle button */}
       {onToggleTheme && (
         <button
           onClick={onToggleTheme}
-          className="p-3 text-white bg-purple-600 rounded-full hover:bg-purple-700 transition-colors shadow-md"
+          className={commonButtonClasses} // Use the common style
           title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
-          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       )}
 
@@ -41,15 +37,15 @@ const Header: React.FC<HeaderProps> = memo(({
       {onToggleDataManagement && (
         <button
           onClick={onToggleDataManagement}
-          className="p-3 text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-md"
+          className={commonButtonClasses} // Use the common style
           title={isDataManagementVisible ? 'Hide Data Management' : 'Show Data Management'}
         >
-          {isDataManagementVisible ? <X size={20} /> : <Database size={20} />}
+          {isDataManagementVisible ? <X size={18} /> : <Database size={18} />}
         </button>
       )}
     </div>
   );
 });
 
-Header.displayName = 'Header'; // Add display name for memo component
+Header.displayName = 'Header';
 export default Header;
