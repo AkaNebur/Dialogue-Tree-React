@@ -33,11 +33,11 @@ const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
           type="target"
           position={targetPosition}
           isConnectable={isConnectable}
-          className="w-3 h-3 transition-colors duration-200 hover:bg-blue-500"
+          className="!w-16 !h-3 !border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500"
         />
       )}
 
-      <div className="text-sm font-medium w-full"> {/* w-full was already here */}
+      <div className="text-sm font-medium w-full">
         {data.label}
       </div>
 
@@ -45,7 +45,7 @@ const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
         type="source"
         position={sourcePosition}
         isConnectable={isConnectable}
-        className="w-3 h-3 transition-colors duration-200 hover:bg-blue-500"
+        className="!w-16 !h-3 !border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500"
       />
     </div>
   );

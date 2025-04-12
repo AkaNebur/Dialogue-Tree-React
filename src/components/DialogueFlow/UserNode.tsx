@@ -48,8 +48,18 @@ const UserNodeComponent: React.FC<UserNodeProps> = ({
         )}
       </div>
 
-      <Handle type="target" position={targetPosition} isConnectable={isConnectable} />
-      <Handle type="source" position={sourcePosition} isConnectable={isConnectable} />
+      <Handle 
+        type="target" 
+        position={targetPosition} 
+        isConnectable={isConnectable} 
+        className="!w-16 !h-3 !border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500"
+      />
+      <Handle 
+        type="source" 
+        position={sourcePosition} 
+        isConnectable={isConnectable} 
+        className="!w-16 !h-3 !border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500"
+      />
     </div>
   );
 };
