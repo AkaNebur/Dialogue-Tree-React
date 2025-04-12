@@ -1,5 +1,7 @@
+// src/components/NodeInfoPanel/index.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNodeInfoPanelData } from '../../store/dialogueStore';
+import MarkdownEditor from '../Markdown/MarkdownEditor';
 
 // --- Consistent Style Definitions ---
 const panelBaseClasses = "w-72 bg-blue-50 dark:bg-dark-surface rounded-xl shadow-lg p-4 border border-blue-100 dark:border-dark-border transition-colors duration-300";
@@ -25,7 +27,6 @@ const NodeInfoPanel: React.FC = () => {
 
   const prevNodeId = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (node && node.id !== prevNodeId.current) {
@@ -47,6 +48,10 @@ const NodeInfoPanel: React.FC = () => {
     }
   };
 
+  const handleTextChange = (newText: string) => {
+    setText(newText);
+  };
+
   const handleTextBlur = () => {
     if (node && text !== (node.data.text || '')) {
       updateNodeText(node.id, text);
@@ -64,15 +69,6 @@ const NodeInfoPanel: React.FC = () => {
       setLabel(node.data.label || ''); // Reset to original on escape
       inputRef.current?.blur();
     }
-  };
-
-  const handleTextKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!node) return;
-    if (event.key === 'Escape') {
-      setText(node.data.text || ''); // Reset to original on escape
-      textareaRef.current?.blur();
-    }
-    // Optional: Implement Shift+Enter for new line and Enter to save/blur if needed
   };
 
   const handleTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -108,16 +104,12 @@ const NodeInfoPanel: React.FC = () => {
 
       <div className="mb-4">
         <label htmlFor={`node-text-${node.id}`} className={labelBaseClasses}> Node Text </label>
-        <textarea
-          ref={textareaRef}
-          id={`node-text-${node.id}`}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+        <MarkdownEditor
+          initialValue={text}
+          onChange={handleTextChange}
           onBlur={handleTextBlur}
-          onKeyDown={handleTextKeyDown}
-          placeholder="Enter detailed node text or dialogue..."
-          rows={4}
-          className={`${inputBaseClasses} resize-y`}
+          placeholder="Enter text with markdown formatting..."
+          rows={5}
         />
       </div>
 

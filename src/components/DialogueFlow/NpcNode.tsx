@@ -1,8 +1,10 @@
+// src/components/DialogueFlow/NpcNode.tsx
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { User } from 'lucide-react';
 import { DialogueNodeData } from '../../types';
 import { useSidebarData } from '../../store/dialogueStore';
+import MarkdownRenderer from '../Markdown/MarkdownRenderer';
 
 // --- Consistent Style Definitions ---
 const nodeContainerBaseClasses = "npc-node shadow-md rounded-lg bg-white dark:bg-dark-surface border-2 w-[250px] flex flex-col overflow-hidden transition-all duration-200";
@@ -11,7 +13,6 @@ const npcHeaderBgClasses = "bg-blue-50 dark:bg-blue-900/80 border-blue-200 dark:
 const nodeBodyClasses = "p-3 text-sm text-gray-700 dark:text-gray-300 break-words";
 const nodePlaceholderClasses = "text-xs italic text-gray-400 dark:text-gray-500";
 const nodeIconContainerClasses = "flex-shrink-0 rounded-full w-8 h-8 flex justify-center items-center mr-2 overflow-hidden border border-gray-300 dark:border-gray-500";
-// *** Removed 'uppercase' from nodeTitleLabelClasses ***
 const nodeTitleLabelClasses = "text-xs font-semibold tracking-wide text-blue-700 dark:text-blue-300 truncate";
 const nodeTitleNameClasses = "text-sm font-semibold text-gray-800 dark:text-gray-100 truncate";
 // --- End Style Definitions ---
@@ -42,7 +43,6 @@ const NpcNodeComponent: React.FC<NpcNodeProps> = ({
         </div>
         <div className="flex-grow min-w-0">
           {selectedNpc && (
-            // This label (NPC Name) now won't be forced uppercase
             <div className={nodeTitleLabelClasses}>
               {selectedNpc.name || 'NPC'}
             </div>
@@ -55,7 +55,7 @@ const NpcNodeComponent: React.FC<NpcNodeProps> = ({
 
       <div className={nodeBodyClasses}>
         {data.text ? (
-            <div className="whitespace-pre-wrap">{data.text}</div>
+            <MarkdownRenderer markdown={data.text} />
         ) : (
             <div className={nodePlaceholderClasses}>No text entered.</div>
         )}
