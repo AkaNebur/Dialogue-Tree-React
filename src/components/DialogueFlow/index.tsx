@@ -11,6 +11,8 @@ import ReactFlow, {
   OnConnectEnd,
   BackgroundVariant,
   ReactFlowInstance,
+  NodeChange,
+  EdgeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -69,6 +71,40 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
       onFitViewInitialized(handleFitView);
     }
   }, [handleFitView, onFitViewInitialized, reactFlowInstance]);
+
+  // Add keyboard handler for delete keys (supports multiple names: Delete, Del, Supr)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for any variant of the delete key
+      if (event.key === 'Delete' || event.key === 'Del' || event.key === 'Supr') {
+        console.log(`Delete key pressed: ${event.key}`);
+        
+        // Get selected nodes and edges
+        const selectedNodes = nodes.filter(node => node.selected);
+        const selectedEdges = edges.filter(edge => edge.selected);
+        
+        // Create change events to delete these nodes/edges
+        const nodeChanges: NodeChange[] = selectedNodes.map(node => ({
+          type: 'remove',
+          id: node.id,
+        }));
+        
+        const edgeChanges: EdgeChange[] = selectedEdges.map(edge => ({
+          type: 'remove',
+          id: edge.id,
+        }));
+        
+        // Apply changes
+        if (nodeChanges.length > 0) onNodesChange(nodeChanges);
+        if (edgeChanges.length > 0) onEdgesChange(edgeChanges);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [nodes, edges, onNodesChange, onEdgesChange]);
 
   const handleConnectStart: OnConnectStart = useCallback((_event, params) => {
     connectingNode.current = {

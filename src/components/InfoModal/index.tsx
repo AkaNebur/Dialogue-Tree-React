@@ -53,7 +53,11 @@ const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
               <Shortcut icon={<MousePointer2 size={16} />} action="Move Node" description="Click and drag a selected node." />
               <Shortcut icon={<Spline size={16} className="text-orange-500 dark:text-orange-400" />} action="Connect Nodes" description="Drag from a source handle to a target handle." />
               <Shortcut icon={<Spline size={16} className="text-teal-500 dark:text-teal-400" />} action="Create Node & Connect" description="Drag from a source handle and release on empty canvas area." />
-              <Shortcut icon={<Trash2 size={16} className="text-red-500 dark:text-red-400" />} action="Delete Selected" description={<span>Press <KeyName>Backspace</KeyName> or <KeyName>Delete</KeyName> key.</span>} />
+              <Shortcut 
+                icon={<Trash2 size={16} className="text-red-500 dark:text-red-400" />} 
+                action="Delete Selected" 
+                description={<span>Press <KeyName>Backspace</KeyName>, <KeyName>Delete</KeyName>, or <KeyName>Del</KeyName> key.</span>} 
+              />
             </Section>
 
             <Section title="Layout & Management" icon={<GitFork size={18} />}>
