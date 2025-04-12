@@ -1,5 +1,6 @@
+// File: src/components/CardSidebar/index.tsx
 import React, { useState } from 'react';
-import { Plus, Settings, User, Info } from 'lucide-react';
+import { Plus, Settings, User, Info, Map } from 'lucide-react';
 import { useSidebarData } from '../../store/dialogueStore';
 
 // --- Consistent Style Definitions ---
@@ -83,6 +84,13 @@ const CardSidebar: React.FC<CardSidebarProps> = ({ onOpenInfoModal, onOpenEditMo
         <button onClick={onOpenInfoModal} className={sidebarIconButtonClasses} title="Info & Shortcuts">
           <Info size={18} />
         </button>
+        <a
+          href="https://rubengalandiaz.notion.site/dialogue-tree-roadmap"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={sidebarIconButtonClasses} title="Roadmap" >
+          <Map size={18} />
+        </a>
       </div>
 
       <div className="flex flex-col gap-4">
