@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef
 import db from '../services/dbService';
-import { AlertCircle, RefreshCw, Trash2, X, CheckCircle } from 'lucide-react'; // Added CheckCircle
+import { AlertCircle, RefreshCw, Trash2, X, CheckCircle } from 'lucide-react';
 
 // --- Consistent Style Definitions ---
-const panelBaseClasses = "fixed bottom-4 left-4 z-[60] max-w-sm w-full rounded-lg shadow-xl transition-opacity duration-300";
+const panelBaseClasses = "fixed bottom-4 left-4 z-[60] max-w-sm w-full rounded-lg shadow-xl transition-opacity duration-500"; // Slightly longer transition
 const panelErrorClasses = "bg-red-800 border border-red-600 text-red-100";
 const panelLoadingClasses = "bg-yellow-700 border border-yellow-500 text-yellow-100";
 const panelSuccessClasses = "bg-gray-800 border border-gray-700 text-white"; // Default/Success state
@@ -28,8 +28,15 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ onReady }) => {
   const [dbStatus, setDbStatus] = useState<'checking' | 'error' | 'success' | 'deleting'>('checking');
   const [dbMessage, setDbMessage] = useState<string>('Checking connection...');
   const [isVisible, setIsVisible] = useState<boolean>(true);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref to store timeout ID
 
   const checkDatabaseConnection = useCallback(async (isRetry = false) => {
+    // Clear any existing hide timeout when checking starts
+    if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+    }
+    setIsVisible(true); // Ensure panel is visible when checking starts
     setDbStatus(isRetry ? 'checking' : 'checking'); // Ensure status is checking
     setDbMessage('Checking connection...');
     try {
@@ -37,8 +44,11 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ onReady }) => {
       setDbStatus('success');
       setDbMessage('Database connection successful.');
       onReady?.();
-      // Optionally auto-hide after success
-      // setTimeout(() => setIsVisible(false), 3000);
+      // Start auto-hide timer on success
+      hideTimeoutRef.current = setTimeout(() => {
+          setIsVisible(false);
+          hideTimeoutRef.current = null; // Clear ref after execution
+      }, 3000); // Auto-hide after 3 seconds
     } catch (err: any) {
       const errorMessage = `Failed to connect. Reason: ${err.message || err.name || 'Unknown error'}`;
       setDbStatus('error');
@@ -47,11 +57,26 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ onReady }) => {
     }
   }, [onReady]);
 
+  // Initial check on mount
   useEffect(() => {
     checkDatabaseConnection();
+
+    // Cleanup function to clear timeout if component unmounts
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
   }, [checkDatabaseConnection]);
 
   const handleDeleteDatabase = useCallback(async () => {
+    // Clear any existing hide timeout if delete is initiated
+    if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+    }
+    setIsVisible(true); // Ensure panel is visible during delete process
+
     if (window.confirm('⚠️ WARNING: This will permanently delete the entire dialogue database from your browser. This action cannot be undone. Are you sure?')) {
       setDbStatus('deleting');
       setDbMessage('Deleting database...');
@@ -60,13 +85,31 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ onReady }) => {
         await db.delete();
         setDbMessage('Database deleted. Reloading...');
         alert('Database deleted. Reloading the application...');
-        window.location.reload();
+        window.location.reload(); // This will cause the component to unmount/remount
       } catch (err: any) {
         setDbStatus('error');
         setDbMessage(`Failed to delete database. Error: ${err.message || err.name}`);
+        setIsVisible(true); // Ensure visible on delete error
       }
+    } else {
+        // If user cancels delete, revert to previous state if it was error
+        // If it was checking/success, the state might already be updated,
+        // but ensuring visibility might be useful if cancellation happened quickly.
+        if (dbStatus === 'error') {
+            setIsVisible(true);
+        }
+        // No need to explicitly set status back unless needed.
     }
-  }, []);
+  }, [dbStatus]); // Added dbStatus to dependency array for checking status before setting visibility
+
+  const handleHide = () => {
+     // Clear any existing hide timeout if manually hidden
+    if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+    }
+    setIsVisible(false);
+  }
 
   const getPanelClasses = () => {
     switch (dbStatus) {
@@ -88,9 +131,6 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ onReady }) => {
     }
   };
 
-
-  if (!isVisible) return null;
-
   const isProcessing = dbStatus === 'checking' || dbStatus === 'deleting';
 
   return (
@@ -102,8 +142,9 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ onReady }) => {
             {dbStatus === 'success' && <CheckCircle size={16} className="mr-1.5 text-green-400" />}
             Database Status
           </h3>
-          {dbStatus === 'success' && isVisible && (
-             <button onClick={() => setIsVisible(false)} className={iconButtonClasses} title="Hide Status">
+          {/* Show close button only when not processing and currently visible */}
+          {!isProcessing && isVisible && (
+             <button onClick={handleHide} className={iconButtonClasses} title="Hide Status">
                <X size={18} />
              </button>
           )}
@@ -113,13 +154,23 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ onReady }) => {
            <p className="break-words">{dbMessage}</p>
         </div>
 
+        {/* Show footer only on error */}
         {dbStatus === 'error' && (
           <div className={`${panelFooterClasses} ${getBorderClasses()}`}>
-            <button onClick={() => checkDatabaseConnection(true)} disabled={isProcessing} className={buttonRetryClasses}>
+            <button
+                onClick={() => checkDatabaseConnection(true)}
+                disabled={isProcessing}
+                className={buttonRetryClasses}
+            >
               <RefreshCw size={12} className={isProcessing ? 'animate-spin' : ''} />
               Retry
             </button>
-            <button onClick={handleDeleteDatabase} disabled={isProcessing} title="Permanently delete the database" className={buttonDeleteClasses}>
+            <button
+                onClick={handleDeleteDatabase}
+                disabled={isProcessing}
+                title="Permanently delete the database"
+                className={buttonDeleteClasses}
+            >
               <Trash2 size={12} />
               Delete DB
             </button>
