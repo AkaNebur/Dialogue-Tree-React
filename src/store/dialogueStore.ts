@@ -364,18 +364,30 @@ export const useDialogueStore = create(
         triggerSave();
       },
 
+      // Only showing the modified onNodesChange method
+
       onNodesChange: (changes) => {
         set(draft => {
-            const { npcIndex, convIndex } = findIndices(draft);
-            if (npcIndex !== -1 && convIndex !== -1) {
-                const conv = draft.npcs[npcIndex].conversations[convIndex];
-                if (!conv.nodes) conv.nodes = [];
-                conv.nodes = applyNodeChanges(changes, conv.nodes);
-            }
+          const { npcIndex, convIndex } = findIndices(draft);
+          if (npcIndex !== -1 && convIndex !== -1) {
+            const conv = draft.npcs[npcIndex].conversations[convIndex];
+            if (!conv.nodes) conv.nodes = [];
+            
+            // Filter out any changes that would remove a start/input node
+            const safeChanges = changes.filter(change => {
+              if (change.type === 'remove') {
+                const nodeToRemove = conv.nodes.find(node => node.id === change.id);
+                return nodeToRemove?.type !== 'input'; // Only allow removal if not an input node
+              }
+              return true; // Allow all other types of changes
+            });
+            
+            // Apply the filtered changes
+            conv.nodes = applyNodeChanges(safeChanges, conv.nodes);
+          }
         });
         triggerSave();
       },
-
       onEdgesChange: (changes) => {
         set(draft => {
             const { npcIndex, convIndex } = findIndices(draft);
