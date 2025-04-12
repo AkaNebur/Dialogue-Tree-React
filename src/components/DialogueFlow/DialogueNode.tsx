@@ -7,8 +7,8 @@ interface DialogueNodeComponentProps extends NodeProps<DialogueNodeData> {}
 const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
   data,
   isConnectable,
-  sourcePosition = Position.Right,
-  targetPosition = Position.Left,
+  sourcePosition = Position.Right, // Default is used if not provided by store/React Flow
+  targetPosition = Position.Left,  // Default is used if not provided by store/React Flow
   type,
   selected,
 }) => {
@@ -26,6 +26,15 @@ const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
       : '',
   ].filter(Boolean).join(' ');
 
+  // --- Handle Rotation Logic ---
+  const isHorizontalLayout = sourcePosition === Position.Left || sourcePosition === Position.Right;
+  const handleBaseClasses = "!border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500";
+  const handleOrientationClasses = isHorizontalLayout
+    ? "!w-3 !h-16" // Tall rectangle for Left/Right positions
+    : "!w-16 !h-3"; // Wide rectangle for Top/Bottom positions
+  const handleCombinedClasses = `${handleBaseClasses} ${handleOrientationClasses}`;
+  // --- End Handle Rotation Logic ---
+
   return (
     <div className={nodeContainerClasses}>
       {type !== 'input' && (
@@ -33,7 +42,7 @@ const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
           type="target"
           position={targetPosition}
           isConnectable={isConnectable}
-          className="!w-16 !h-3 !border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500"
+          className={handleCombinedClasses} // Apply dynamic classes
         />
       )}
 
@@ -45,7 +54,7 @@ const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
         type="source"
         position={sourcePosition}
         isConnectable={isConnectable}
-        className="!w-16 !h-3 !border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500"
+        className={handleCombinedClasses} // Apply dynamic classes
       />
     </div>
   );

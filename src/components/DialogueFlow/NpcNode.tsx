@@ -22,10 +22,19 @@ interface NpcNodeProps extends NodeProps<DialogueNodeData> {}
 const NpcNodeComponent: React.FC<NpcNodeProps> = ({
   data,
   isConnectable,
-  sourcePosition = Position.Right,
-  targetPosition = Position.Left,
+  sourcePosition = Position.Right, // Default is used if not provided by store/React Flow
+  targetPosition = Position.Left,  // Default is used if not provided by store/React Flow
 }) => {
   const { selectedNpc } = useSidebarData();
+
+  // --- Handle Rotation Logic ---
+  const isHorizontalLayout = sourcePosition === Position.Left || sourcePosition === Position.Right;
+  const handleBaseClasses = "!border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500";
+  const handleOrientationClasses = isHorizontalLayout
+    ? "!w-3 !h-16" // Tall rectangle for Left/Right positions
+    : "!w-16 !h-3"; // Wide rectangle for Top/Bottom positions
+  const handleCombinedClasses = `${handleBaseClasses} ${handleOrientationClasses}`;
+  // --- End Handle Rotation Logic ---
 
   return (
     <div className={nodeContainerBaseClasses + ' border-blue-200 dark:border-gray-600'}>
@@ -61,17 +70,17 @@ const NpcNodeComponent: React.FC<NpcNodeProps> = ({
         )}
       </div>
 
-      <Handle 
-        type="target" 
-        position={targetPosition} 
-        isConnectable={isConnectable} 
-        className="!w-16 !h-3 !border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500"
+      <Handle
+        type="target"
+        position={targetPosition}
+        isConnectable={isConnectable}
+        className={handleCombinedClasses} // Apply dynamic classes
       />
-      <Handle 
-        type="source" 
-        position={sourcePosition} 
-        isConnectable={isConnectable} 
-        className="!w-16 !h-3 !border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500"
+      <Handle
+        type="source"
+        position={sourcePosition}
+        isConnectable={isConnectable}
+        className={handleCombinedClasses} // Apply dynamic classes
       />
     </div>
   );
