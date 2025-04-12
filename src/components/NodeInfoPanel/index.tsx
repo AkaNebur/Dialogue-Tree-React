@@ -33,11 +33,6 @@ const NodeInfoPanel: React.FC = () => {
       setText(node.data.text || '');
       setSelectedType(node.type || 'custom');
       prevNodeId.current = node.id;
-      // Delay focus slightly to ensure element is ready after potential re-render
-      setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }, 50);
     } else if (!node) {
       setLabel('');
       setText('');
