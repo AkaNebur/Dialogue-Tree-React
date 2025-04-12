@@ -2,12 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base HTML/Body styles */
 html, body, #root {
   @apply w-full h-full m-0 p-0 box-border font-sans bg-gray-50 dark:bg-dark-bg;
 }
 
-/* Dark mode variable overrides for React Flow */
+/* Dark mode variables */
 .dark {
   --xy-edge-stroke-default: #e0e0e0;
   --xy-edge-stroke-width-default: 1.5;
@@ -36,40 +35,41 @@ html, body, #root {
   --xy-controls-box-shadow-default: 0 0 6px 1px rgba(0, 0, 0, 0.2);
 }
 
-/* React Flow Customizations */
+
 @layer components {
-    /* Base styling for any custom node, if DialogueNode is used directly */
+    /* Base styling for standard custom nodes */
     .dialogue-node-base {
-        @apply p-3 border rounded-md shadow-sm text-left
+        @apply p-1
+               border
+               rounded-md
+               shadow-sm
+               text-left
                min-w-[180px]
                whitespace-normal
                break-words
-               overflow-hidden
+               overflow-visible
                transition-all duration-200
                bg-white dark:bg-dark-surface
                border-gray-300 dark:border-dark-border
-               text-gray-800 dark:text-dark-text;
+               text-gray-800 dark:text-dark-text
+               relative;
     }
 
-    /* Universal Selection Style for Nodes */
-    .react-flow__node.selected > .dialogue-node-base, /* Generic base */
-    .react-flow__node.selected > .npc-node,         /* Specific NPC node */
-    .react-flow__node.selected > .user-node,         /* Specific User node */
-    .react-flow__node.selected > .node-input-styled { /* Start node */
+    /* Universal Selection Style for Standard Nodes */
+    .react-flow__node.selected > .dialogue-node-base,
+    .react-flow__node.selected > .npc-node,
+    .react-flow__node.selected > .user-node {
         @apply border-2 border-blue-500 dark:border-blue-400 ring-2 ring-offset-1 ring-blue-500 dark:ring-blue-400 ring-offset-white dark:ring-offset-dark-bg;
+    }
+
+    /* Specific Selection style for the CONTENT of the input node */
+    .react-flow__node-input.selected > .input-node-wrapper > div:first-child {
+        @apply ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1 ring-offset-white dark:ring-offset-dark-bg;
     }
 
     /* Handle Styling */
     .react-flow__handle {
         @apply !w-3 !h-3 !border-none transition-colors duration-200;
-        @apply !bg-gray-400 dark:!bg-gray-500; /* Default handle color */
-    }
-    .react-flow__handle:hover {
-        @apply !bg-blue-500 dark:!bg-blue-400; /* Hover handle color */
-    }
-    .npc-node .react-flow__handle,
-    .user-node .react-flow__handle {
-        @apply !bg-blue-500 dark:!bg-blue-400; /* Specific nodes use consistent theme color */
     }
     .react-flow__handle.connectable { @apply cursor-crosshair; }
     .react-flow__handle.connecting { @apply !bg-green-500; }
@@ -118,33 +118,49 @@ html, body, #root {
     }
 }
 
+/* === React Flow Overrides === */
+.react-flow__node-input {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  width: auto !important;
+  min-width: unset !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  text-align: left !important;
+  font-size: inherit !important;
+  color: inherit !important;
+}
+/* === End React Flow Overrides === */
+
+
 /* Scrollbar Styles */
 .card-scrollbar::-webkit-scrollbar { width: 5px; }
 .card-scrollbar::-webkit-scrollbar-track {
-  background-color: rgba(239, 246, 255, 0.6); /* Light theme track */
+  background-color: rgba(239, 246, 255, 0.6);
   border-radius: 8px;
 }
 .card-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(96, 165, 250, 0.6); /* Light theme thumb */
+  background-color: rgba(96, 165, 250, 0.6);
   border-radius: 8px;
 }
 .card-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(59, 130, 246, 0.8); /* Light theme thumb hover */
+  background-color: rgba(59, 130, 246, 0.8);
 }
 .dark .card-scrollbar::-webkit-scrollbar-track {
-  background-color: rgba(31, 41, 55, 0.3); /* Dark theme track (slightly visible gray) */
+  background-color: rgba(31, 41, 55, 0.3);
 }
 .dark .card-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(96, 165, 250, 0.4); /* Dark theme thumb */
+  background-color: rgba(96, 165, 250, 0.4);
 }
 .dark .card-scrollbar::-webkit-scrollbar-thumb:hover {
-   background-color: rgba(96, 165, 250, 0.6); /* Dark theme thumb hover */
+   background-color: rgba(96, 165, 250, 0.6);
 }
-/* Firefox scrollbar */
 .card-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(96, 165, 250, 0.6) rgba(239, 246, 255, 0.6); /* thumb track */
+  scrollbar-color: rgba(96, 165, 250, 0.6) rgba(239, 246, 255, 0.6);
 }
 .dark .card-scrollbar {
-  scrollbar-color: rgba(96, 165, 250, 0.4) rgba(31, 41, 55, 0.3); /* thumb track */
+  scrollbar-color: rgba(96, 165, 250, 0.4) rgba(31, 41, 55, 0.3);
 }

@@ -22,22 +22,37 @@ interface NpcNodeProps extends NodeProps<DialogueNodeData> {}
 const NpcNodeComponent: React.FC<NpcNodeProps> = ({
   data,
   isConnectable,
-  sourcePosition = Position.Right, // Default is used if not provided by store/React Flow
-  targetPosition = Position.Left,  // Default is used if not provided by store/React Flow
+  sourcePosition = Position.Right,
+  targetPosition = Position.Left,
 }) => {
   const { selectedNpc } = useSidebarData();
 
-  // --- Handle Rotation Logic ---
+  // --- Updated Handle Styling ---
   const isHorizontalLayout = sourcePosition === Position.Left || sourcePosition === Position.Right;
-  const handleBaseClasses = "!border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500";
+  const handleBaseClasses = `
+    !border
+    !rounded-sm          // Subtle rounding
+    !bg-blue-500         // Primary blue
+    dark:!bg-blue-600
+    !border-blue-300     // Lighter border for definition
+    dark:!border-blue-700
+    transition-colors
+    duration-150
+    hover:!bg-blue-600     // Darken on hover
+    hover:dark:!bg-blue-500 // Lighten dark on hover slightly
+    hover:!border-blue-400 // Adjust border on hover
+    hover:dark:!border-blue-600
+  `;
   const handleOrientationClasses = isHorizontalLayout
-    ? "!w-3 !h-16" // Tall rectangle for Left/Right positions
-    : "!w-16 !h-3"; // Wide rectangle for Top/Bottom positions
+    ? "!w-2 !h-10" // Tall and thin
+    : "!w-10 !h-2"; // Wide and thin
+
   const handleCombinedClasses = `${handleBaseClasses} ${handleOrientationClasses}`;
-  // --- End Handle Rotation Logic ---
+  // --- End Updated Handle Styling ---
 
   return (
-    <div className={nodeContainerBaseClasses + ' border-blue-200 dark:border-gray-600'}>
+    // Using specific class 'npc-node' for potential global CSS targeting
+    <div className={nodeContainerBaseClasses + ' border-blue-200 dark:border-gray-600 npc-node'}>
       <div className={`${nodeHeaderClasses} ${npcHeaderBgClasses}`}>
         <div className={`${nodeIconContainerClasses} bg-gray-200 dark:bg-gray-700`}>
           {selectedNpc?.image ? (
@@ -74,13 +89,13 @@ const NpcNodeComponent: React.FC<NpcNodeProps> = ({
         type="target"
         position={targetPosition}
         isConnectable={isConnectable}
-        className={handleCombinedClasses} // Apply dynamic classes
+        className={handleCombinedClasses}
       />
       <Handle
         type="source"
         position={sourcePosition}
         isConnectable={isConnectable}
-        className={handleCombinedClasses} // Apply dynamic classes
+        className={handleCombinedClasses}
       />
     </div>
   );

@@ -7,55 +7,105 @@ interface DialogueNodeComponentProps extends NodeProps<DialogueNodeData> {}
 const DialogueNodeComponent: React.FC<DialogueNodeComponentProps> = ({
   data,
   isConnectable,
-  sourcePosition = Position.Right, // Default is used if not provided by store/React Flow
-  targetPosition = Position.Left,  // Default is used if not provided by store/React Flow
+  sourcePosition = Position.Right,
+  targetPosition = Position.Left,
   type,
-  selected,
+  selected, // Destructure selected prop
 }) => {
-  const nodeClassName = data.className || '';
-  const baseClassName = type === 'input' ? '' : 'dialogue-node'; // Generic class for non-specific custom nodes
+  const nodeClassName = data.className || ''; // User-provided class from initialData (e.g., 'node-start')
+
+  // --- Apply base styling consistently, allow override ---
+  // dialogue-node-base provides padding, border, etc.
+  const baseNodeStyles = "dialogue-node-base";
+
+  // Specific styles for the input node content (the dashed box)
+  const inputNodeContentStyles = `
+    p-3 border border-dashed border-blue-400 dark:border-blue-600
+    bg-blue-50 dark:bg-blue-900/30 rounded-md
+    text-center text-blue-700 dark:text-blue-300 text-sm
+    min-w-[180px] w-full  // Ensure it fills the container
+  `;
 
   const nodeContainerClasses = [
-    baseClassName,
-    nodeClassName,
-    'transition-all',
-    'duration-200',
-    'hover:shadow-lg',
-    selected
-      ? 'border-2 border-blue-500 dark:border-blue-400 ring-2 ring-offset-1 ring-blue-500 dark:ring-blue-400 ring-offset-white dark:ring-offset-dark-bg'
-      : '',
+    baseNodeStyles, // Apply base styles to all
+    type === 'input' ? 'node-input-container' : '', // Specific class for input container if needed
+    nodeClassName, // Add specific class like 'node-start'
+    // Selection is handled globally in index.css now, referencing the base class '.dialogue-node-base'
   ].filter(Boolean).join(' ');
 
-  // --- Handle Rotation Logic ---
+
+  // --- Handle Styling (remains the same) ---
   const isHorizontalLayout = sourcePosition === Position.Left || sourcePosition === Position.Right;
-  const handleBaseClasses = "!border-0 !rounded-none !bg-teal-500 dark:!bg-teal-400 transition-colors duration-200 hover:!bg-blue-500";
+  const handleBaseClasses = `
+    !border
+    !rounded-sm          // Subtle rounding
+    !bg-blue-500         // Primary blue
+    dark:!bg-blue-600
+    !border-blue-300     // Lighter border for definition
+    dark:!border-blue-700
+    transition-colors
+    duration-150
+    hover:!bg-blue-600     // Darken on hover
+    hover:dark:!bg-blue-500 // Lighten dark on hover slightly
+    hover:!border-blue-400 // Adjust border on hover
+    hover:dark:!border-blue-600
+  `;
   const handleOrientationClasses = isHorizontalLayout
-    ? "!w-3 !h-16" // Tall rectangle for Left/Right positions
-    : "!w-16 !h-3"; // Wide rectangle for Top/Bottom positions
+    ? "!w-2 !h-10" // Adjusted size: Tall and thin
+    : "!w-10 !h-2"; // Adjusted size: Wide and thin
+
   const handleCombinedClasses = `${handleBaseClasses} ${handleOrientationClasses}`;
-  // --- End Handle Rotation Logic ---
+  // --- End Handle Styling ---
 
   return (
+    // Apply the combined container classes to the root div
     <div className={nodeContainerClasses}>
-      {type !== 'input' && (
-        <Handle
-          type="target"
-          position={targetPosition}
-          isConnectable={isConnectable}
-          className={handleCombinedClasses} // Apply dynamic classes
-        />
+
+      {/* Conditional Rendering based on Node Type */}
+      {type === 'input' ? (
+        // --- Input Node Rendering ---
+        <>
+          {/* Content of the start node */}
+          <div className={inputNodeContentStyles}>
+            {data.label}
+          </div>
+          {/* Input nodes ONLY have a source handle */}
+          <Handle
+            type="source"
+            position={sourcePosition}
+            isConnectable={isConnectable}
+            className={handleCombinedClasses}
+          />
+        </>
+      ) : (
+        // --- Default/Custom Node Rendering ---
+        <>
+          <Handle
+            type="target"
+            position={targetPosition}
+            isConnectable={isConnectable}
+            className={handleCombinedClasses}
+          />
+          {/* Default Node Content Area */}
+          <div className="p-3"> {/* Use padding from base class */}
+            <div className="text-sm font-medium w-full">
+              {data.label}
+            </div>
+             {/* Render text if available for generic nodes */}
+            {data.text && (
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 break-words">
+                    {data.text}
+                </div>
+            )}
+          </div>
+          <Handle
+            type="source"
+            position={sourcePosition}
+            isConnectable={isConnectable}
+            className={handleCombinedClasses}
+          />
+        </>
       )}
-
-      <div className="text-sm font-medium w-full">
-        {data.label}
-      </div>
-
-      <Handle
-        type="source"
-        position={sourcePosition}
-        isConnectable={isConnectable}
-        className={handleCombinedClasses} // Apply dynamic classes
-      />
     </div>
   );
 };
