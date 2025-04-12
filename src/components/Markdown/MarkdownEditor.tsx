@@ -1,6 +1,5 @@
 // src/components/Markdown/MarkdownEditor.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import MarkdownRenderer from './MarkdownRenderer';
 
 interface MarkdownEditorProps {
   initialValue: string;
@@ -13,7 +12,7 @@ interface MarkdownEditorProps {
 }
 
 /**
- * Markdown editor with preview functionality
+ * Simplified Markdown editor without preview toggle
  */
 const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   initialValue,
@@ -24,7 +23,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   rows = 4,
   height = 'auto'
 }) => {
-  const [isPreview, setIsPreview] = useState(false);
   const [value, setValue] = useState(initialValue || '');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -36,10 +34,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const newValue = e.target.value;
     setValue(newValue);
     onChange(newValue);
-  };
-
-  const togglePreview = () => {
-    setIsPreview(!isPreview);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -100,87 +94,75 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   
   return (
     <div className={`markdown-editor ${className}`} style={{ minHeight: height }}>
-      <div className="flex justify-between items-center mb-1">
-        {!isPreview && (
-          <div className="flex space-x-1">
-            <button 
-              type="button" 
-              onClick={() => insertFormatting('**')}
-              className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Bold"
-            >
-              <strong>B</strong>
-            </button>
-            <button 
-              type="button" 
-              onClick={() => insertFormatting('*')}
-              className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Italic"
-            >
-              <em>I</em>
-            </button>
-            <button 
-              type="button" 
-              onClick={() => insertFormatting('~~')}
-              className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Strikethrough"
-            >
-              <s>S</s>
-            </button>
-            <button 
-              type="button" 
-              onClick={() => insertFormatting('`')}
-              className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Code"
-            >
-              <code>{'<>'}</code>
-            </button>
-            <button 
-              type="button" 
-              onClick={() => insertFormatting('# ')}
-              className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Heading"
-            >
-              H
-            </button>
-            <button 
-              type="button" 
-              onClick={() => insertFormatting('- ')}
-              className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="List item"
-            >
-              •
-            </button>
-          </div>
-        )}
+      <div className="flex space-x-1 mb-1">
         <button 
           type="button" 
-          onClick={togglePreview}
-          className="ml-auto text-xs py-1 px-2 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300"
+          onClick={() => insertFormatting('**')}
+          className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          title="Bold"
         >
-          {isPreview ? 'Edit' : 'Preview'}
+          <strong>B</strong>
+        </button>
+        <button 
+          type="button" 
+          onClick={() => insertFormatting('*')}
+          className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          title="Italic"
+        >
+          <em>I</em>
+        </button>
+        <button 
+          type="button" 
+          onClick={() => insertFormatting('~~')}
+          className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          title="Strikethrough"
+        >
+          <s>S</s>
+        </button>
+        <button 
+          type="button" 
+          onClick={() => insertFormatting('`')}
+          className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          title="Code"
+        >
+          <code>{'<>'}</code>
+        </button>
+        <button 
+          type="button" 
+          onClick={() => insertFormatting('# ')}
+          className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          title="Heading"
+        >
+          H
+        </button>
+        <button 
+          type="button" 
+          onClick={() => insertFormatting('- ')}
+          className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          title="List item"
+        >
+          •
+        </button>
+        <button 
+          type="button" 
+          onClick={() => insertFormatting('> ')}
+          className="p-1 rounded text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          title="Blockquote"
+        >
+          "
         </button>
       </div>
       
-      {isPreview ? (
-        <div 
-          className={`${baseInputClasses} overflow-auto`} 
-          style={{ minHeight: `${rows * 1.5}rem` }}
-        >
-          <MarkdownRenderer markdown={value} />
-        </div>
-      ) : (
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleChange}
-          onBlur={onBlur}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          rows={rows}
-          className={`${baseInputClasses} resize-y`}
-        />
-      )}
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={handleChange}
+        onBlur={onBlur}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        rows={rows}
+        className={`${baseInputClasses} resize-y`}
+      />
     </div>
   );
 };

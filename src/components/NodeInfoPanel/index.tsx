@@ -1,7 +1,7 @@
 // src/components/NodeInfoPanel/index.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNodeInfoPanelData } from '../../store/dialogueStore';
-import MarkdownEditor from '../Markdown/MarkdownEditor';
+import MarkdownEditor from '../Markdown/MarkdownEditor.tsx';
 
 // --- Consistent Style Definitions ---
 const panelBaseClasses = "w-72 bg-blue-50 dark:bg-dark-surface rounded-xl shadow-lg p-4 border border-blue-100 dark:border-dark-border transition-colors duration-300";
@@ -27,6 +27,7 @@ const NodeInfoPanel: React.FC = () => {
 
   const prevNodeId = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (node && node.id !== prevNodeId.current) {
@@ -50,8 +51,20 @@ const NodeInfoPanel: React.FC = () => {
 
   const handleTextChange = (newText: string) => {
     setText(newText);
+    
+    // Update the node text with a short debounce for better performance
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    debounceTimerRef.current = setTimeout(() => {
+      if (node) {
+        updateNodeText(node.id, newText);
+      }
+    }, 50);
   };
 
+  // Still keep the onBlur handler as a backup to ensure changes are saved
   const handleTextBlur = () => {
     if (node && text !== (node.data.text || '')) {
       updateNodeText(node.id, text);
@@ -78,6 +91,15 @@ const NodeInfoPanel: React.FC = () => {
       updateNodeType(node.id, newType);
     }
   };
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   if (!node || node.type === 'input') {
     return null;
