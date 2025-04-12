@@ -1,22 +1,45 @@
 // src/components/EditModal.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Camera, X, Trash2 } from 'lucide-react';
+import { User, Camera, Trash2, Plus } from 'lucide-react';
+import { isColorLight, hexToRgba } from '../utils/colorUtils';
+import Modal from './ui/Modal';
+import Button from './ui/Button';
+import Input from './ui/Input';
+import { formStyles, alertStyles } from '../styles/commonStyles';
+
+// --- Explicit Hex Colors for Text Contrast ---
+const CONTRAST_TEXT_DARK = '#FFFFFF'; // White text for dark backgrounds
+const CONTRAST_TEXT_LIGHT = '#1f2937';  // Dark gray text (Tailwind gray-800) for light backgrounds
+
+// --- Preset colors array ---
+const PRESET_COLORS = [
+  { label: 'Red', value: '#ef4444' },
+  { label: 'Orange', value: '#f97316' },
+  { label: 'Yellow', value: '#eab308' },
+  { label: 'Green', value: '#22c55e' },
+  { label: 'Teal', value: '#14b8a6' },
+  { label: 'Blue', value: '#3b82f6' },
+  { label: 'Indigo', value: '#6366f1' },
+  { label: 'Purple', value: '#a855f7' },
+  { label: 'Pink', value: '#ec4899' },
+  { label: 'Gray', value: '#6b7280' },
+];
+
+// --- Default Color Picker Color ---
+const DEFAULT_COLOR_PICKER = '#4f46e5'; // Indigo
 
 interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (newName: string, imageDataUrl?: string) => void;
-  onDelete?: () => void; // Prop for deletion functionality
+  onSave: (newName: string, imageDataUrl?: string, newColor?: string) => void;
+  onDelete?: () => void;
   title: string;
   currentName: string;
   currentImage?: string;
+  currentAccentColor?: string;
   entityType: 'NPC' | 'Dialogue';
 }
 
-/**
- * Modal component for editing names and images with delete functionality.
- * Updated button layout: Top-right X for close, Delete button in bottom actions.
- */
 const EditModal: React.FC<EditModalProps> = ({
   isOpen,
   onClose,
@@ -25,56 +48,48 @@ const EditModal: React.FC<EditModalProps> = ({
   title,
   currentName,
   currentImage,
+  currentAccentColor,
   entityType,
 }) => {
   const [name, setName] = useState(currentName);
   const [image, setImage] = useState<string | undefined>(currentImage);
+  const [color, setColor] = useState<string>(currentAccentColor || DEFAULT_COLOR_PICKER);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
+  const [, setShowCustomColorPicker] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Reset state when modal opens with new entity
+  const colorInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset state when modal opens or relevant props change
   useEffect(() => {
     setName(currentName);
     setImage(currentImage);
-    setShowDeleteConfirm(false); // Reset delete confirmation state
-    
-    // Focus input when modal opens
-    if (isOpen && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }, 100);
-    }
-  }, [isOpen, currentName, currentImage]);
-  
+    setColor(currentAccentColor || DEFAULT_COLOR_PICKER);
+    setShowDeleteConfirm(false); // Reset delete confirmation
+    setShowCustomColorPicker(false); // Reset color picker state
+  }, [isOpen, currentName, currentImage, currentAccentColor]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate name isn't empty
     if (name.trim()) {
-      onSave(name.trim(), image);
+      onSave(name.trim(), image, entityType === 'NPC' ? color : undefined);
     }
   };
-  
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+
+  const handleImageChange = (file: File | null) => {
     if (!file) return;
-    
-    // Check if file is an image
+
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
+      alert('Please upload an image file (PNG, JPG, GIF).');
       return;
     }
-    
-    // Check file size (limit to 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Image size exceeds 2MB limit');
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      alert('Image size exceeds 2MB limit.');
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
@@ -83,269 +98,281 @@ const EditModal: React.FC<EditModalProps> = ({
     };
     reader.readAsDataURL(file);
   };
-  
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleImageChange(e.target.files?.[0] || null);
+  };
+
   const handleRemoveImage = () => {
     setImage(undefined);
-    // Reset file input
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = ''; // Reset file input
     }
   };
-  
-  // Trigger delete confirmation UI
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
-  };
-  
-  // Execute the actual deletion
-  const confirmDelete = () => {
-    if (onDelete) {
-      onDelete();
-      // onClose(); // The parent component (CardSidebar) handles closing after delete
+
+  const handleColorChange = (newColor: string) => {
+    // Ensure color is a valid hex value
+    if (/^#([0-9A-F]{3}){1,2}$/i.test(newColor)) {
+      setColor(newColor);
+    } else if (/^([0-9A-F]{3}){1,2}$/i.test(newColor)) {
+      // Add # if missing
+      setColor(`#${newColor}`);
+    } else {
+      // If invalid, keep the current color
+      console.warn('Invalid color format:', newColor);
     }
   };
-  
-  // Cancel the deletion process
-  const cancelDelete = () => {
-    setShowDeleteConfirm(false);
+
+  const openColorPicker = () => {
+    if (colorInputRef.current) {
+      colorInputRef.current.click();
+    }
   };
-  
-  // Handle drag events for image upload
+
+  // Define modal footer with action buttons
+  const modalFooter = (
+    <>
+      {onDelete && (
+        <Button
+          variant="danger"
+          leftIcon={<Trash2 size={16} />}
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          Delete
+        </Button>
+      )}
+      <div className="flex-grow"></div>
+      <Button variant="secondary" onClick={onClose}>Cancel</Button>
+      <Button
+        variant="primary"
+        onClick={handleSubmit}
+        disabled={!name.trim()}
+      >
+        Save Changes
+      </Button>
+    </>
+  );
+
+  // Image upload related classes
+  const imagePlaceholderClasses = "w-16 h-16 flex-shrink-0 rounded-full flex items-center justify-center border-2 border-dashed cursor-pointer transition-colors shadow-sm";
+  const imagePlaceholderStateClasses = isDraggingOver // Using dark theme styles directly
+    ? "border-gray-500 bg-gray-900/30"
+    : "border-gray-600 bg-gray-800 hover:border-gray-500";
+
+  // Handle drag and drop for image upload
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingOver(true);
   };
-  
+
   const handleDragLeave = () => {
     setIsDraggingOver(false);
   };
-  
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingOver(false);
-    
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    
-    // Check if file is an image
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
-      return;
-    }
-    
-    // Check file size (limit to 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Image size exceeds 2MB limit');
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setImage(event.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
+    handleImageChange(e.dataTransfer.files?.[0] || null);
   };
-  
-  // If the modal is not open, don't render anything
-  if (!isOpen) return null;
-  
-  return (
-    <>
-      {/* Modal Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-        onClick={onClose} // Close when clicking backdrop
-      >
-        {/* Modal Content */}
-        <div 
-          className="bg-white dark:bg-dark-surface rounded-lg shadow-xl max-w-md w-full overflow-hidden transition-colors duration-200 relative" // Added relative for positioning close button
-          onClick={e => e.stopPropagation()} // Prevent closing when clicking the modal itself
-        >
-          {/* Close Button (Top Right) */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1 rounded-full transition-colors z-10" // Ensure it's above header
-            title="Close"
-          >
-            <X size={24} />
-          </button>
 
-          {/* Modal Header */}
-          <div className="bg-blue-500 dark:bg-blue-700 text-white px-4 py-3">
-            <h3 className="text-lg font-medium pr-8">{title}</h3> {/* Added padding-right for close button space */}
-            {/* Trash icon removed from here */}
+  // Determine if we're showing delete confirmation or edit form
+  const renderContent = () => {
+    if (showDeleteConfirm) {
+      return (
+        <div className={alertStyles.variants.error}>
+          <h4 className={alertStyles.title}>Confirm Deletion</h4>
+          <p className={alertStyles.message}>
+            Are you sure you want to delete this {entityType.toLowerCase()}?
+            {entityType === 'NPC' && " This will also delete all associated dialogues."} This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-2 mt-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash2 size={14} />}
+              onClick={onDelete}
+            >
+              Delete
+            </Button>
           </div>
-          
-          {/* Delete Confirmation UI */}
-          {showDeleteConfirm ? (
-            <div className="p-4">
-              <div className="bg-red-50 dark:bg-red-900/30 p-3 rounded-md border border-red-200 dark:border-red-800 mb-4">
-                <h4 className="text-red-800 dark:text-red-200 font-medium mb-2">Confirm Deletion</h4>
-                <p className="text-sm text-red-700 dark:text-red-300 mb-3">
-                  Are you sure you want to delete this {entityType.toLowerCase()}?
-                  {entityType === 'NPC' && " This will also delete all associated dialogues."}
-                </p>
-                <div className="flex justify-end space-x-2">
-                  <button
-                    type="button"
-                    onClick={cancelDelete}
-                    className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 
-                             bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
-                             rounded-md transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={confirmDelete}
-                    className="px-3 py-1.5 text-sm font-medium text-white 
-                             bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 
-                             rounded-md transition-colors"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Normal Edit Form */
-            <form onSubmit={handleSubmit} className="p-4">
-              <div className="mb-4">
-                <label 
-                  htmlFor="edit-name" 
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+        </div>
+      );
+    }
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name Input */}
+        <Input
+          ref={inputRef}
+          label={`${entityType} Name`}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={`Enter ${entityType.toLowerCase()} name`}
+          required
+        />
+
+        {/* NPC-specific fields */}
+        {entityType === 'NPC' && (
+          <>
+            {/* Image Upload Section */}
+            <div className={formStyles.group}>
+              <label className={formStyles.label}>
+                Profile Image (Optional)
+              </label>
+
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileInputChange}
+                accept="image/png, image/jpeg, image/gif"
+                className="hidden"
+                aria-label="Upload profile image"
+              />
+
+              <div className="flex items-center space-x-4">
+                {/* Image Preview / Placeholder */}
+                <div
+                  className={`${imagePlaceholderClasses} ${imagePlaceholderStateClasses}`}
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Image upload area"
+                  title="Click or drag image (Max 2MB)"
                 >
-                  {entityType} Name
-                </label>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  id="edit-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-gray-700 dark:text-gray-200 border rounded-md 
-                          border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-bg
-                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder={`Enter ${entityType.toLowerCase()} name`}
-                />
-              </div>
-              
-              {/* Image Upload Section - Only for NPCs */}
-              {entityType === 'NPC' && (
-                <div className="mb-4">
-                  <label 
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Profile Image
-                  </label>
-                  
-                  {/* Hidden file input */}
-                  <input 
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  
-                  {/* Image Preview or Upload Area */}
                   {image ? (
-                    <div className="relative w-32 h-32 mx-auto mb-2">
-                      <img 
-                        src={image} 
-                        alt="NPC Profile" 
-                        className="w-full h-full object-cover rounded-full border-2 border-blue-500 dark:border-blue-600"
+                    <div className="relative w-16 h-16 flex-shrink-0">
+                      <img
+                        src={image}
+                        alt="NPC Profile Preview"
+                        className="w-full h-full object-cover rounded-full border border-gray-600 shadow-sm"
                       />
                       <button
                         type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 transition-colors focus:outline-none focus:ring-1 ring-offset-1 ring-red-600"
                         title="Remove image"
+                        aria-label="Remove profile image"
                       >
-                        <X size={16} />
+                        <span className="sr-only">Remove image</span>
+                        ×
                       </button>
                     </div>
                   ) : (
-                    <div 
-                      className={`w-32 h-32 mx-auto mb-2 rounded-full flex flex-col items-center justify-center 
-                                border-2 border-dashed cursor-pointer transition-colors
-                                ${isDraggingOver 
-                                  ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/30' 
-                                  : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800'}`}
-                      onClick={() => fileInputRef.current?.click()}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                    >
-                      <User size={40} className="text-gray-400 dark:text-gray-500 mb-2" />
-                      <span className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                        {isDraggingOver ? 'Drop image here' : 'Click or drag image'}
-                      </span>
-                    </div>
+                    <User size={24} className="text-gray-500" aria-hidden="true" />
                   )}
-                  
-                  {/* Upload Button */}
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 
-                              dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-                    >
-                      <Camera size={14} className="mr-1" />
-                      {image ? 'Change Image' : 'Upload Image'}
-                    </button>
-                  </div>
                 </div>
-              )}
+
+                {/* Upload/Change Button */}
+                <Button
+                  variant="ghost"
+                  leftIcon={<Camera size={14} />}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {image ? 'Change Image' : 'Upload Image'}
+                </Button>
+              </div>
+              <p className={formStyles.helpText}>Max 2MB. PNG, JPG, GIF.</p>
+            </div>
+
+            {/* Accent Color Section */}
+            <div className={formStyles.group}>
+              <label className={formStyles.label}>Accent Color</label>
               
-              {/* Modal Actions - Updated Layout */}
-              <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                 {/* Left Side: Delete Button (conditional) */}
-                 <div>
-                  {onDelete && (
+              {/* Preset Colors */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-2">Preset Colors</p>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_COLORS.map((presetColor) => (
+                    <button
+                      key={presetColor.value}
+                      type="button"
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        color.toLowerCase() === presetColor.value.toLowerCase()
+                          ? 'border-gray-300 ring-2 ring-offset-2 ring-gray-400 ring-offset-gray-800'
+                          : 'border-gray-600 hover:border-gray-500'
+                      }`}
+                      style={{ backgroundColor: presetColor.value }}
+                      title={presetColor.label}
+                      onClick={() => handleColorChange(presetColor.value)}
+                      aria-label={`Select ${presetColor.label} color`}
+                    />
+                  ))}
+                    {/* Custom color button - with positioned color input */}
                     <button
                       type="button"
-                      onClick={handleDeleteClick} // Trigger confirmation
-                      className="px-4 py-2 text-sm font-medium text-white 
-                                bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 
-                                rounded-md transition-colors duration-200 flex items-center"
-                      title={`Delete this ${entityType}`}
+                      className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-600 hover:border-gray-500 bg-gray-700 relative"
+                      title="Custom Color"
                     >
-                       <Trash2 size={16} className="mr-1" /> Delete
+                      <Plus size={16} className="text-gray-300" />
+                      <input
+                        ref={colorInputRef}
+                        type="color"
+                        value={color}
+                        onChange={(e) => handleColorChange(e.target.value)}
+                        onInput={(e) => handleColorChange((e.target as HTMLInputElement).value)}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        aria-label="Select custom color"
+                      />
                     </button>
-                  )}
-                 </div>
-
-                 {/* Right Side: Cancel and Save Buttons */}
-                 <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
-                            bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
-                            rounded-md transition-colors duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white 
-                            bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 
-                            rounded-md transition-colors duration-200"
-                  >
-                    Save Changes
-                  </button>
-                 </div>
+                </div>
               </div>
-            </form>
-          )}
-        </div>
-      </div>
-    </>
+            </div>
+
+            {/* Preview Section */}
+            <div className={formStyles.group}>
+              <label className={formStyles.label}>Preview</label>
+              <div
+                className="relative rounded-lg overflow-hidden flex h-12 border-2 items-center transition-all duration-200 px-3"
+                style={{
+                  borderColor: color,
+                  backgroundColor: hexToRgba(color, 0.2) // 20% opacity background using our utility
+                }}
+                aria-label="NPC card preview"
+              >
+                {/* Preview Avatar */}
+                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center border border-gray-600 flex-shrink-0 mr-3">
+                  {image ? (
+                    <img
+                      src={image}
+                      alt="NPC Preview Avatar"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <User size={16} className="text-gray-500" aria-hidden="true" />
+                  )}
+                </div>
+                {/* Preview Name */}
+                <span className="text-sm font-medium truncate text-white">
+  {name.trim() || "NPC Name"}
+</span>
+              </div>
+            </div>
+          </>
+        )}
+      </form>
+    );
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      footer={!showDeleteConfirm ? modalFooter : undefined}
+    >
+      {renderContent()}
+    </Modal>
   );
 };
 

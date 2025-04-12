@@ -1,23 +1,22 @@
-// src/components/Toolbar/index.tsx
-import React from 'react'; // Removed useState as active state comes from props now
+// File: src/components/Toolbar/index.tsx
+
+// src/components/Toolbar/index.tsx - Updated with new UI components
+import React from 'react';
 import {
-  Square,
-  Diamond,
-  Circle,
-  ArrowRight,
-  Type,
-  User,
+   User,
   UserSquare
 } from 'lucide-react';
 import { useSidebarData } from '../../store/dialogueStore';
+import IconButton from '../ui/IconButton';
+import { tooltipStyles } from '../../styles/commonStyles';
 
-// Tool type enum for tracking selected tool
-export type ToolType = 'rectangle' | 'diamond' | 'circle' | 'arrow' | 'text' | 'user' | 'npc';
+// Tool type enum for tracking selected tool (Only node creation tools left)
+export type ToolType = 'user' | 'npc';
 
 interface ToolbarProps {
   className?: string;
-  activeTool: ToolType | null; // <<< New prop: Currently active tool
-  onToolChange: (tool: ToolType | null) => void; // <<< New prop: Callback for tool change
+  activeTool: ToolType | null; // Currently active tool
+  onToolChange: (tool: ToolType | null) => void; // Callback for tool change
 }
 
 /**
@@ -26,18 +25,16 @@ interface ToolbarProps {
  */
 const Toolbar: React.FC<ToolbarProps> = ({
   className = '',
-  activeTool,   // <<< Destructure new prop
-  onToolChange, // <<< Destructure new prop
+  activeTool,
+  onToolChange,
 }) => {
   // Get the selected NPC data from the store
   const { selectedNpc } = useSidebarData();
 
-  // State to track the currently selected tool is REMOVED - Controlled by App now
-
   // Determine if we have a custom NPC image to use
   const hasNpcImage = selectedNpc && selectedNpc.image;
 
-  // Handler for tool selection - now calls the prop
+  // Handler for tool selection
   const handleToolSelect = (tool: ToolType) => {
     // If clicking the already active tool, deactivate it (set to null)
     // Otherwise, activate the clicked tool
@@ -45,111 +42,71 @@ const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   return (
-    <div className={`bg-blue-50 dark:bg-dark-surface rounded-xl shadow-lg px-3 py-2 flex items-center space-x-1 border-2 border-blue-100 dark:border-dark-border transition-colors duration-300 ${className}`}>
-      {/* Geometric Shape Tools */}
-      <ToolbarButton
-        icon={<Square size={18} />}
-        tooltip="Rectangle Tool"
-        active={activeTool === 'rectangle'} // <<< Use activeTool prop
-        onClick={() => handleToolSelect('rectangle')}
-      />
-      <ToolbarButton
-        icon={<Diamond size={18} />}
-        tooltip="Diamond Tool"
-        active={activeTool === 'diamond'} // <<< Use activeTool prop
-        onClick={() => handleToolSelect('diamond')}
-      />
-      <ToolbarButton
-        icon={<Circle size={18} />}
-        tooltip="Circle Tool"
-        active={activeTool === 'circle'} // <<< Use activeTool prop
-        onClick={() => handleToolSelect('circle')}
-      />
-      <ToolbarDivider />
-      {/* Connection and Text Tools */}
-      <ToolbarButton
-        icon={<ArrowRight size={18} />}
-        tooltip="Arrow Tool"
-        active={activeTool === 'arrow'} // <<< Use activeTool prop
-        onClick={() => handleToolSelect('arrow')}
-      />
-      <ToolbarDivider />
-      <ToolbarButton
-        icon={<Type size={18} />}
-        tooltip="Text Tool"
-        active={activeTool === 'text'} // <<< Use activeTool prop
-        onClick={() => handleToolSelect('text')}
-      />
-      <ToolbarDivider />
+    // Adjusted padding to p-2 to match header buttons height
+    <div className={`bg-[var(--color-surface)] rounded-xl shadow-lg p-2 flex items-center space-x-1 border-2 border-[var(--color-border)] transition-colors duration-300 ${className}`}>
       {/* Node Creation Tools */}
       <ToolbarButton
         icon={<UserSquare size={18} />}
-        tooltip="Node User"
-        active={activeTool === 'user'} // <<< Use activeTool prop
+        label="Node User"
+        active={activeTool === 'user'}
         onClick={() => handleToolSelect('user')}
       />
       <ToolbarButton
         icon={
           hasNpcImage ? (
-            <div className="w-5 h-5 rounded-md overflow-hidden border border-gray-300 dark:border-gray-600">
+            <div className="w-5 h-5 rounded-md overflow-hidden border border-gray-600">
               <img src={selectedNpc?.image} alt={selectedNpc?.name || 'NPC'} className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="w-5 h-5 rounded-md bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-              <User size={14} className="text-gray-500 dark:text-gray-400" />
-            </div>
+             <div className="w-5 h-5 rounded-md bg-gray-700 flex items-center justify-center border border-gray-600">
+               <User size={14} className="text-gray-400" />
+             </div>
           )
         }
-        tooltip={selectedNpc ? `Node NPC: ${selectedNpc.name}` : "Node NPC"}
-        active={activeTool === 'npc'} // <<< Use activeTool prop
+        label={selectedNpc ? `Node NPC: ${selectedNpc.name}` : "Node NPC"}
+        active={activeTool === 'npc'}
         onClick={() => handleToolSelect('npc')}
       />
     </div>
   );
 };
 
-// ToolbarButton and ToolbarDivider remain the same as your previous version
 interface ToolbarButtonProps {
   icon: React.ReactNode;
-  tooltip: string;
+  label: string;
   onClick?: () => void;
   active?: boolean;
 }
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   icon,
-  tooltip,
+  label,
   onClick,
   active = false
 }) => {
-  // Keep the tooltip span for hover effect, but the primary tooltip is handled by the title attribute
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`p-2 rounded-md transition-colors duration-200 relative group
-        ${active
-          ? 'bg-blue-500 dark:bg-indigo-900 text-white'
-          : 'text-gray-600 hover:bg-blue-100 dark:text-gray-200 dark:hover:bg-gray-700'
-        }`}
-      title={tooltip} // Browser native tooltip for accessibility and fallback
-    >
-      {icon}
-      {/* Enhanced visual tooltip on hover */}
-      <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs font-medium text-white bg-gray-900 dark:bg-black rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-        {tooltip}
-         {/* Optional: Add a small arrow/triangle to the tooltip */}
-         <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-black rotate-45 -mt-1"></div>
+    <div className={tooltipStyles.wrapper}>
+      {/* Use variant="original" to match header buttons */}
+      <IconButton
+        icon={icon}
+        label={label}
+        onClick={onClick}
+        // Use "original" variant for base style matching header buttons
+        variant="original"
+        // Apply active state styling conditionally, similar to layout buttons in App.tsx
+        // Adds a subtle background change and a ring to indicate selection
+        className={
+          active
+            ? 'bg-gray-900 ring-1 ring-gray-600' // Active state: darker bg + ring
+            : '' // Default state uses the "original" variant styles
+        }
+      />
+      <span className={`${tooltipStyles.tooltip} ${tooltipStyles.position.bottom} opacity-0 group-hover:opacity-100`}>
+        {label}
+        <div className={`${tooltipStyles.arrow} top-0 left-1/2 transform -translate-x-1/2 -mt-1`}></div>
       </span>
-    </button>
+    </div>
   );
 };
-
-const ToolbarDivider: React.FC = () => {
-  return (
-    <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
-  );
-};
-
 
 export default Toolbar;

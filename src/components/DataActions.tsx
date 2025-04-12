@@ -1,25 +1,10 @@
-import React, { useState } from 'react';
+// src/components/DataActions.tsx - Updated with new UI components
+import React, { useState, useRef } from 'react';
 import { exportDialogueData, importDialogueData } from '../services/dialogueService';
-import { Download, Upload, AlertTriangle, Loader2 } from 'lucide-react'; // Added Loader2
-
-// --- Consistent Style Definitions ---
-const panelBaseClasses = "w-64 bg-white dark:bg-dark-surface rounded-xl shadow-lg overflow-hidden border-2 border-blue-100 dark:border-dark-border transition-colors duration-300";
-const panelHeaderClasses = "p-4 border-b border-gray-200 dark:border-dark-border";
-const panelTitleClasses = "text-md font-semibold text-gray-700 dark:text-gray-300";
-const panelBodyClasses = "p-4";
-const sectionTitleClasses = "text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide"; // Made slightly bolder
-
-const buttonBaseClasses = "w-full py-3 px-4 flex items-center gap-3 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1"; // Added gap-3
-const buttonExportClasses = `${buttonBaseClasses} bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-800 dark:text-blue-200 focus:ring-blue-400`;
-const buttonImportClasses = `${buttonBaseClasses} bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-800 dark:text-green-200 focus:ring-green-400 cursor-pointer`; // Added cursor-pointer for label
-const buttonDisabledClasses = "opacity-70 cursor-not-allowed";
-
-const alertBoxClasses = "rounded-md p-3 border";
-const alertErrorClasses = `${alertBoxClasses} bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-900/60`;
-const alertErrorTextClasses = "text-sm text-red-800 dark:text-red-200";
-const alertIconClasses = "mr-2 flex-shrink-0"; // Consistent icon spacing
-// --- End Style Definitions ---
-
+import { Download, Upload, AlertTriangle } from 'lucide-react';
+import Panel from './ui/Panel';
+import Button from './ui/Button';
+import { alertStyles } from '../styles/commonStyles';
 
 interface DataActionsProps {
   onDataImported: () => void;
@@ -29,7 +14,8 @@ const DataActions: React.FC<DataActionsProps> = ({ onDataImported }) => {
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null); // Added export error
+  const [exportError, setExportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -78,53 +64,72 @@ const DataActions: React.FC<DataActionsProps> = ({ onDataImported }) => {
     }
   };
 
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   const isLoading = isExporting || isImporting;
 
   return (
-    <div className={panelBaseClasses}>
-      <div className={panelHeaderClasses}>
-        <h3 className={panelTitleClasses}> Data Management </h3>
-      </div>
+    <Panel 
+      title="Data Management" 
+      variant="sidebar"
+    >
+      <div className="space-y-4">
+        <div>
+          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+            Import / Export
+          </h4>
+          <div className="space-y-2">
+            <Button
+              variant="primary"
+              fullWidth
+              leftIcon={<Download size={18} />}
+              onClick={handleExport}
+              disabled={isLoading}
+              isLoading={isExporting}
+            >
+              <div className="text-left flex-grow">
+                <div className="font-medium">Export Data</div>
+                <div className="text-xs opacity-80">Save all dialogues as JSON</div>
+              </div>
+            </Button>
 
-      <div className={`${panelBodyClasses} border-b border-gray-200 dark:border-dark-border`}>
-        <h4 className={sectionTitleClasses}> Import / Export </h4>
-        <div className="space-y-2">
-          <button
-            onClick={handleExport}
-            disabled={isLoading}
-            className={`${buttonExportClasses} ${isLoading ? buttonDisabledClasses : ''}`}
-          >
-            <Download size={18} />
-            <div className="text-left flex-grow">
-              <div className="font-medium">{isExporting ? 'Exporting...' : 'Export Data'}</div>
-              <div className="text-xs opacity-80">Save all dialogues as JSON</div>
-            </div>
-            {isExporting && <Loader2 size={16} className="animate-spin" />}
-          </button>
-
-          <label className={`${buttonImportClasses} ${isLoading ? buttonDisabledClasses : ''}`}>
-            <Upload size={18} />
-            <div className="text-left flex-grow">
-              <div className="font-medium">{isImporting ? 'Importing...' : 'Import Data'}</div>
-              <div className="text-xs opacity-80">Load dialogues from file</div>
-            </div>
-             {isImporting && <Loader2 size={16} className="animate-spin" />}
-            <input type="file" accept=".json" onChange={handleImport} disabled={isLoading} className="hidden" />
-          </label>
-        </div>
-      </div>
-
-      {(importError || exportError) && (
-        <div className={panelBodyClasses}>
-          <div className={alertErrorClasses}>
-            <div className="flex items-start"> {/* Use items-start for better alignment */}
-              <AlertTriangle size={16} className={`${alertIconClasses} text-red-500`} />
-              <span className={alertErrorTextClasses}>{importError || exportError}</span>
-            </div>
+            <Button
+              variant="secondary"
+              fullWidth
+              leftIcon={<Upload size={18} />}
+              onClick={triggerFileInput}
+              disabled={isLoading}
+              isLoading={isImporting}
+            >
+              <div className="text-left flex-grow">
+                <div className="font-medium">Import Data</div>
+                <div className="text-xs opacity-80">Load dialogues from file</div>
+              </div>
+            </Button>
+            
+            <input 
+              type="file" 
+              accept=".json" 
+              onChange={handleImport} 
+              disabled={isLoading} 
+              className="hidden" 
+              ref={fileInputRef}
+            />
           </div>
         </div>
-      )}
-    </div>
+
+        {(importError || exportError) && (
+          <div className={alertStyles.variants.error}>
+            <div className="flex items-start">
+              <AlertTriangle size={16} className="flex-shrink-0 mr-2 text-red-500" />
+              <span className="text-sm">{importError || exportError}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </Panel>
   );
 };
 

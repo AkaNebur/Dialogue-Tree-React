@@ -1,7 +1,8 @@
-// src/components/AutoSaveIndicator.tsx
+// src/components/AutoSaveIndicator.tsx - Updated with new UI components
 import React, { useState, useEffect } from 'react';
-// Import the main store hook AND the specific selector hook
+import { Check } from 'lucide-react';
 import { useDialogueStore, useSavingStatus } from '../store/dialogueStore';
+import { alertStyles } from '../styles/commonStyles';
 
 /**
  * A visual indicator for auto-save status using Zustand store.
@@ -14,8 +15,8 @@ const AutoSaveIndicator: React.FC = () => {
 
   useEffect(() => {
     if (isLoading) {
-        setVisible(false);
-        return;
+      setVisible(false);
+      return;
     }
 
     let timer: NodeJS.Timeout | null = null;
@@ -33,33 +34,30 @@ const AutoSaveIndicator: React.FC = () => {
       setVisible(true);
 
       timer = setTimeout(() => {
-        // *** FIX: Use the main store's getState() method here ***
+        // Use the main store's getState() method here
         if (!useDialogueStore.getState().isSaving) {
-            setVisible(false);
+          setVisible(false);
         }
       }, 3000);
-
     } else {
-        setVisible(false);
+      setVisible(false);
     }
 
     // Cleanup timer
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [isLoading, isSaving, lastSaved]); // Dependencies remain the same
+  }, [isLoading, isSaving, lastSaved]);
 
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-gray-800 dark:bg-dark-surface text-white py-2 px-4 rounded-lg shadow-lg transition-opacity duration-300 opacity-80">
-      <div className="flex items-center">
+    <div className="fixed bottom-4 right-4 z-50 py-2 px-4 rounded-lg shadow-lg transition-opacity duration-300 opacity-80">
+      <div className={`flex items-center ${alertStyles.variants.info}`}>
         {isSaving ? (
-          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+          <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-transparent rounded-full mr-2"></div>
         ) : (
-          <svg className="h-4 w-4 text-green-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
+          <Check className="h-4 w-4 text-green-400 mr-2" />
         )}
         <p className="text-sm">{message}</p>
       </div>

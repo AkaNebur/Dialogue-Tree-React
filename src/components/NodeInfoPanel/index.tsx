@@ -1,24 +1,24 @@
-// src/components/NodeInfoPanel/index.tsx
-import React, { useState, useEffect, useRef } from 'react';
+// File: src/components/NodeInfoPanel/index.tsx
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Trash2 } from 'lucide-react';
+import { NodeChange } from 'reactflow'; // Import NodeChange type
 import { useNodeInfoPanelData } from '../../store/dialogueStore';
-import MarkdownEditor from '../Markdown/MarkdownEditor.tsx';
-
-// --- Consistent Style Definitions ---
-const panelBaseClasses = "w-72 bg-blue-50 dark:bg-dark-surface rounded-xl shadow-lg p-4 border border-blue-100 dark:border-dark-border transition-colors duration-300";
-const panelTitleClasses = "text-base font-semibold text-gray-700 dark:text-gray-300 mb-4";
-
-const labelBaseClasses = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
-const inputBaseClasses = "w-full px-3 py-2 text-sm rounded-md border border-blue-200 dark:border-dark-border bg-white dark:bg-dark-bg text-gray-800 dark:text-dark-text placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:focus:ring-dark-accent focus:border-transparent shadow-inner";
-// --- End Style Definitions ---
-
+import Input from '../ui/Input';
+import Panel from '../ui/Panel';
+import Select, { SelectOption } from '../ui/Select'; // Import the new Select component
+import IconButton from '../ui/IconButton'; // Import IconButton
+import { typography } from '../../styles/commonStyles';
+import MarkdownEditor from '../Markdown/MarkdownEditor';
 
 const NodeInfoPanel: React.FC = () => {
   const {
     selectedNode: node,
+    onNodesChange, // Get the onNodesChange action
     updateNodeData,
     updateNodeText,
     updateNodeType,
-    availableNodeTypes
+    availableNodeTypes // This is an array of strings: ['npc', 'user', 'custom']
   } = useNodeInfoPanelData();
 
   const [label, setLabel] = useState<string>('');
@@ -51,12 +51,11 @@ const NodeInfoPanel: React.FC = () => {
 
   const handleTextChange = (newText: string) => {
     setText(newText);
-    
-    // Update the node text with a short debounce for better performance
+
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
-    
+
     debounceTimerRef.current = setTimeout(() => {
       if (node) {
         updateNodeText(node.id, newText);
@@ -64,7 +63,6 @@ const NodeInfoPanel: React.FC = () => {
     }, 50);
   };
 
-  // Still keep the onBlur handler as a backup to ensure changes are saved
   const handleTextBlur = () => {
     if (node && text !== (node.data.text || '')) {
       updateNodeText(node.id, text);
@@ -92,7 +90,6 @@ const NodeInfoPanel: React.FC = () => {
     }
   };
 
-  // Cleanup debounce timer on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -101,58 +98,64 @@ const NodeInfoPanel: React.FC = () => {
     };
   }, []);
 
+  const handleDeleteNode = useCallback(() => {
+    if (node && node.type !== 'input' && onNodesChange) {
+      const deleteChange: NodeChange = { type: 'remove', id: node.id };
+      onNodesChange([deleteChange]);
+      // The panel will disappear automatically as the node is no longer selected
+    }
+  }, [node, onNodesChange]);
+
+  const nodeTypeOptions: SelectOption[] = availableNodeTypes.map(type => ({
+    value: type,
+    label: type.charAt(0).toUpperCase() + type.slice(1) // Capitalize (e.g., 'Npc', 'User')
+  }));
+
+  // Do not render the panel if no node is selected or if it's the input node
   if (!node || node.type === 'input') {
     return null;
   }
 
-  return (
-    <div className={panelBaseClasses}>
-      <h3 className={panelTitleClasses}> Edit Node </h3>
+  // Define the delete button for the panel actions
+  const panelActions = <IconButton icon={<Trash2 size={16} />} label="Delete Node" onClick={handleDeleteNode} variant="danger" />;
 
-      <div className="mb-4">
-        <label htmlFor={`node-label-${node.id}`} className={labelBaseClasses}> Node Title </label>
-        <input
+  return (
+    <Panel title="Edit Node" width="18rem" actions={panelActions}> {/* Add actions prop */}
+      <div className="space-y-4">
+        <Input
           ref={inputRef}
-          id={`node-label-${node.id}`}
-          type="text"
+          label="Node Title"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           onBlur={handleLabelBlur}
           onKeyDown={handleLabelKeyDown}
           placeholder="Enter node title"
-          className={inputBaseClasses}
+          id={`node-label-${node.id}`}
         />
-      </div>
 
-      <div className="mb-4">
-        <label htmlFor={`node-text-${node.id}`} className={labelBaseClasses}> Node Text </label>
-        <MarkdownEditor
-          initialValue={text}
-          onChange={handleTextChange}
-          onBlur={handleTextBlur}
-          placeholder="Enter text with markdown formatting..."
-          rows={5}
-        />
-      </div>
+        <div className="mb-4">
+          <label htmlFor={`node-text-${node.id}`} className={typography.label}>Node Text</label>
+          <MarkdownEditor
+            id={`node-text-${node.id}`}
+            initialValue={text}
+            onChange={handleTextChange}
+            onBlur={handleTextBlur}
+            placeholder="Enter text with markdown formatting..."
+            rows={5}
+          />
+        </div>
 
-      <div>
-        <label htmlFor={`node-type-${node.id}`} className={labelBaseClasses}> Node Type </label>
-        <select
+        {/* Replace the native select with the new Select component */}
+        <Select
           id={`node-type-${node.id}`}
+          label="Node Type"
           value={selectedType}
           onChange={handleTypeChange}
-          className={`${inputBaseClasses} appearance-none pr-8 bg-no-repeat bg-right`}
-          // Simple SVG arrow for dropdown indicator
-          style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>')` }}
-        >
-          {availableNodeTypes.map((type) => (
-            <option key={type} value={type}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </option>
-          ))}
-        </select>
+          options={nodeTypeOptions}
+        />
+
       </div>
-    </div>
+    </Panel>
   );
 };
 

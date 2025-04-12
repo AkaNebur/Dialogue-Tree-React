@@ -1,5 +1,5 @@
 // File: src/types/index.ts
-import { Node, Edge, Position, XYPosition, NodeChange, EdgeChange, Connection } from 'reactflow';
+import { Node, Edge, Position, XYPosition } from 'reactflow';
 
 export type PositioningMode = 'dagre' | 'manual';
 
@@ -18,9 +18,9 @@ export interface LayoutConstants {
 }
 
 export interface DialogueNodeData {
-  label: string; // This will now act as the node's title/identifier in the header
+  label: string; // Node's title/identifier in the header
   className?: string;
-  text?: string; // New field for the body content
+  text?: string; // Body content
 }
 
 export type DialogueNode = Node<DialogueNodeData>;
@@ -37,6 +37,8 @@ export interface NPC {
   id: string;
   name: string;
   image?: string;
+  accentColor?: string;
+  isHorizontal?: boolean; // NPC-specific layout direction
   conversations: Conversation[];
 }
 
@@ -46,8 +48,6 @@ export interface NodePositions {
 
 // Props for UI Components that still receive props from parent (App)
 export interface HeaderProps {
-  isDarkMode?: boolean;
-  onToggleTheme?: () => void;
   isDataManagementVisible?: boolean;
   onToggleDataManagement?: () => void;
 }
@@ -72,7 +72,7 @@ export interface TooltipProps {
   position?: 'right' | 'left' | 'top' | 'bottom';
 }
 
-// Hook Return Types (Keep hooks that still exist)
+// Hook Return Types
 export interface UseLayoutToggleReturn {
   isHorizontal: boolean;
   toggleLayout: () => void;

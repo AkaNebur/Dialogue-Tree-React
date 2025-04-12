@@ -18,11 +18,13 @@ import {
   createInitialConversationData,
   DEFAULT_EMPTY_NODES,
   DEFAULT_EMPTY_EDGES,
+  DEFAULT_NPC_ACCENT_COLOR,
+  DEFAULT_NPC_LAYOUT_HORIZONTAL,
 } from '../constants/initialData';
 import {
   DialogueNode,
   DialogueEdge,
-  NPC,
+  NPC, 
   Conversation,
 } from '../types';
 import { loadAllNpcs, saveAllNpcs } from '../services/dialogueService';
@@ -56,6 +58,8 @@ interface DialogueState {
   deleteNpc: (npcId: string) => void;
   updateNpcName: (npcId: string, newName: string) => void;
   updateNpcImage: (npcId: string, imageDataUrl: string | undefined) => void;
+  updateNpcAccentColor: (npcId: string, color: string) => void;
+  updateNpcLayoutDirection: (npcId: string, isHorizontal: boolean) => void;
 
   // Conversation Actions
   addConversation: (npcId: string, name: string) => void;
@@ -71,9 +75,9 @@ interface DialogueState {
   setEdges: (edgesOrUpdater: DialogueEdge[] | ((edges: DialogueEdge[]) => DialogueEdge[])) => void;
   updateNodePositions: (positions: { [nodeId: string]: XYPosition }) => void;
   updateNodeLayout: (isHorizontal: boolean) => void;
-  updateNodeData: (nodeId: string, newLabel: string) => void; // For label/title
-  updateNodeText: (nodeId: string, newText: string) => void; // For body text
-  updateNodeType: (nodeId: string, newType: string) => void; // Action to update node type
+  updateNodeData: (nodeId: string, newLabel: string) => void;
+  updateNodeText: (nodeId: string, newText: string) => void;
+  updateNodeType: (nodeId: string, newType: string) => void;
 }
 
 let debouncedSave: ReturnType<typeof debounce<() => Promise<void>>> | null = null;
@@ -157,6 +161,15 @@ export const useDialogueStore = create(
           const loadedNpcs = await loadAllNpcs();
           console.log(`[Store] Loaded ${loadedNpcs.length} NPCs.`);
 
+          loadedNpcs.forEach(npc => {
+            if (!npc.accentColor) {
+              npc.accentColor = DEFAULT_NPC_ACCENT_COLOR;
+            }
+            if (npc.isHorizontal === undefined) {
+              npc.isHorizontal = DEFAULT_NPC_LAYOUT_HORIZONTAL;
+            }
+          });
+
           try {
               console.log("[Store] Syncing IdManager with loaded data...");
               IdManager.syncWithData(loadedNpcs);
@@ -210,11 +223,13 @@ export const useDialogueStore = create(
           id: newNpcId,
           name: name?.trim() || `New NPC ${newNpcId.split('-')[1]}`,
           image: undefined,
+          accentColor: DEFAULT_NPC_ACCENT_COLOR,
+          isHorizontal: DEFAULT_NPC_LAYOUT_HORIZONTAL,
           conversations: [
             {
               id: newConversationId,
               name: conversationName,
-              ...createInitialConversationData(conversationName),
+              ...createInitialConversationData(conversationName, DEFAULT_NPC_LAYOUT_HORIZONTAL),
             },
           ],
         };
@@ -289,21 +304,66 @@ export const useDialogueStore = create(
         triggerSave();
       },
 
+      updateNpcAccentColor: (npcId, color) => {
+        if (!npcId || !color) return;
+        set(draft => {
+            const npc = draft.npcs.find((n: NPC) => n.id === npcId);
+            if (npc) {
+                npc.accentColor = color;
+                console.log(`[Store] Updated accent color for NPC ${npcId} to "${color}"`);
+            } else {
+                console.warn(`[Store] NPC ${npcId} not found, cannot update accent color.`);
+            }
+        });
+        triggerSave();
+      },
+
+      updateNpcLayoutDirection: (npcId, isHorizontal) => {
+        if (!npcId) return;
+        set(draft => {
+          const npc = draft.npcs.find((n) => n.id === npcId);
+          if (npc) {
+            npc.isHorizontal = isHorizontal;
+            console.log(`[Store] Updated layout direction for NPC ${npcId} to ${isHorizontal ? 'horizontal' : 'vertical'}`);
+            
+            if (npcId === draft.selectedNpcId) {
+              const { npcIndex, convIndex } = findIndices(draft);
+              if (npcIndex !== -1 && convIndex !== -1) {
+                const conv = draft.npcs[npcIndex].conversations[convIndex];
+                if (conv.nodes) {
+                  conv.nodes.forEach((node) => {
+                    node.sourcePosition = isHorizontal ? Position.Right : Position.Bottom;
+                    node.targetPosition = isHorizontal ? Position.Left : Position.Top;
+                  });
+                }
+              }
+            }
+          } else {
+            console.warn(`[Store] NPC ${npcId} not found, cannot update layout direction.`);
+          }
+        });
+        triggerSave();
+      },
+
       addConversation: (npcId, name) => {
         if (!npcId) return;
         const newConversationId = IdManager.generateConversationId();
         const newName = name?.trim() || `New Conversation ${newConversationId.split('-')[1]}`;
-        const newConversation: Conversation = {
-          id: newConversationId,
-          name: newName,
-          ...createInitialConversationData(newName),
-        };
+        
         set(draft => {
-            const npc = draft.npcs.find((n: NPC) => n.id === npcId);
-            if (npc) {
-                npc.conversations.push(newConversation);
-                draft.selectedConversationId = newConversationId;
-            }
+          const npc = draft.npcs.find((n) => n.id === npcId);
+          if (npc) {
+            const isHorizontal = npc.isHorizontal !== undefined ? npc.isHorizontal : DEFAULT_NPC_LAYOUT_HORIZONTAL;
+            
+            const newConversation: Conversation = {
+              id: newConversationId,
+              name: newName,
+              ...createInitialConversationData(newName, isHorizontal),
+            };
+            
+            npc.conversations.push(newConversation);
+            draft.selectedConversationId = newConversationId;
+          }
         });
         triggerSave();
       },
@@ -337,6 +397,7 @@ export const useDialogueStore = create(
             if (convIndex !== -1) {
                 const deletedConvId = npc.conversations[convIndex].id;
                 npc.conversations.splice(convIndex, 1);
+
                 if (deletedConvId === draft.selectedConversationId) {
                     draft.selectedConversationId = npc.conversations[0]?.id || null;
                 }
@@ -364,30 +425,28 @@ export const useDialogueStore = create(
         triggerSave();
       },
 
-      // Only showing the modified onNodesChange method
-
+      // --- React Flow Actions ---
       onNodesChange: (changes) => {
         set(draft => {
           const { npcIndex, convIndex } = findIndices(draft);
           if (npcIndex !== -1 && convIndex !== -1) {
             const conv = draft.npcs[npcIndex].conversations[convIndex];
             if (!conv.nodes) conv.nodes = [];
-            
-            // Filter out any changes that would remove a start/input node
+
             const safeChanges = changes.filter(change => {
               if (change.type === 'remove') {
                 const nodeToRemove = conv.nodes.find(node => node.id === change.id);
-                return nodeToRemove?.type !== 'input'; // Only allow removal if not an input node
+                return nodeToRemove?.type !== 'input';
               }
-              return true; // Allow all other types of changes
+              return true;
             });
-            
-            // Apply the filtered changes
+
             conv.nodes = applyNodeChanges(safeChanges, conv.nodes);
           }
         });
         triggerSave();
       },
+
       onEdgesChange: (changes) => {
         set(draft => {
             const { npcIndex, convIndex } = findIndices(draft);
@@ -404,6 +463,7 @@ export const useDialogueStore = create(
         set(draft => {
             const { npcIndex, convIndex } = findIndices(draft);
             if (npcIndex === -1 || convIndex === -1) return;
+
             if (connection.source === connection.target) return;
 
             const conv = draft.npcs[npcIndex].conversations[convIndex];
@@ -472,10 +532,13 @@ export const useDialogueStore = create(
              if (npcIndex !== -1 && convIndex !== -1) {
                  const conv = draft.npcs[npcIndex].conversations[convIndex];
                  if (!conv.nodes) return;
-                 conv.nodes.forEach((node: DialogueNode) => {
+                 
+                 conv.nodes.forEach((node) => {
                      node.sourcePosition = isHorizontal ? Position.Right : Position.Bottom;
                      node.targetPosition = isHorizontal ? Position.Left : Position.Top;
                  });
+                 
+                 draft.npcs[npcIndex].isHorizontal = isHorizontal;
              }
          });
          triggerSave();
@@ -501,7 +564,7 @@ export const useDialogueStore = create(
       },
 
       updateNodeText: (nodeId, newText) => {
-        if (!nodeId) return; // Allow empty text
+        if (!nodeId) return;
         set(draft => {
           const { npcIndex, convIndex } = findIndices(draft);
           if (npcIndex !== -1 && convIndex !== -1) {
@@ -509,7 +572,7 @@ export const useDialogueStore = create(
               (n: DialogueNode) => n.id === nodeId && n.type !== 'input'
             );
             if (node) {
-              node.data = { ...node.data, text: newText }; // Update text, allow empty
+              node.data = { ...node.data, text: newText };
               console.log(`[Store] Updated text for node ${nodeId}`);
             } else {
                  console.warn(`[Store] Node ${nodeId} not found or is start node, cannot update text.`);
@@ -545,10 +608,11 @@ export const useDialogueStore = create(
 
 export const useNodeInfoPanelData = () => useDialogueStore((state) => ({
     selectedNode: state.getSelectedNodeInfo(),
+    onNodesChange: state.onNodesChange,
     updateNodeData: state.updateNodeData,
-    updateNodeText: state.updateNodeText,         // Action to update node text
-    updateNodeType: state.updateNodeType,       // Action to update node type
-    availableNodeTypes: state.getNodeTypes(), // List of available types
+    updateNodeText: state.updateNodeText,
+    updateNodeType: state.updateNodeType,
+    availableNodeTypes: state.getNodeTypes(),
 }));
 
 export const useSidebarData = () => useDialogueStore((state) => ({
@@ -564,6 +628,8 @@ export const useSidebarData = () => useDialogueStore((state) => ({
     updateNpcName: state.updateNpcName,
     updateConversationName: state.updateConversationName,
     updateNpcImage: state.updateNpcImage,
+    updateNpcAccentColor: state.updateNpcAccentColor,
+    updateNpcLayoutDirection: state.updateNpcLayoutDirection,
     selectedNpc: state.selectedNpc(),
 }));
 

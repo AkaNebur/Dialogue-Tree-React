@@ -1,36 +1,31 @@
-// File: src/components/CardSidebar/index.tsx
-import React, { useState } from 'react';
-import { Plus, Settings, User, Info, Map } from 'lucide-react';
+// src/components/CardSidebar/index.tsx
+import React, { useState, ReactNode } from 'react';
+import { Plus, Settings, User, Info, Map, Edit, Database, X } from 'lucide-react';
 import { useSidebarData } from '../../store/dialogueStore';
-
-// --- Consistent Style Definitions ---
-const panelBaseClasses = "bg-blue-50 dark:bg-dark-surface rounded-xl shadow-lg p-3 border-2 border-blue-100 dark:border-dark-border transition-colors duration-300 w-64";
-const panelTitleClasses = "text-lg font-semibold text-gray-700 dark:text-gray-300";
-
-const sidebarIconButtonClasses = "bg-blue-50 hover:bg-blue-100 dark:bg-dark-surface dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl p-2 transition-colors shadow-lg border-2 border-blue-100 dark:border-dark-border focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1";
-const addIconButtonClasses = "bg-blue-100 hover:bg-blue-200 dark:bg-dark-bg dark:hover:bg-gray-800 text-blue-600 dark:text-gray-300 rounded-full p-2 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1";
-const addIconDisabledClasses = "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed rounded-full p-2 transition-colors shadow-md";
-
-const inputBaseClasses = "w-full p-2 mb-2 text-sm rounded-md border border-blue-200 dark:border-dark-border bg-white dark:bg-dark-bg text-gray-800 dark:text-dark-text placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent shadow-inner";
-
-const buttonBaseClasses = "flex-1 px-3 py-2 text-sm font-medium rounded-md shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1";
-const buttonPrimaryClasses = `${buttonBaseClasses} text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 focus:ring-blue-500`;
-const buttonSecondaryClasses = `${buttonBaseClasses} text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 focus:ring-gray-400`;
-
-const cardItemBaseClasses = "relative rounded-lg shadow-md transition-all duration-200 border";
-const cardItemIdleClasses = "bg-white border-blue-100 hover:border-blue-300 dark:bg-dark-bg dark:border-dark-border dark:hover:border-dark-accent";
-const cardItemSelectedClasses = "bg-blue-100 border-blue-300 dark:bg-blue-900 dark:border-blue-900 dark:border-opacity-60";
-const cardItemTextClasses = "w-full text-left p-3 pr-10 rounded-lg text-sm font-medium text-gray-800 dark:text-dark-text";
-const cardItemIconClasses = "absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-dark-accent p-1.5 rounded-full focus:outline-none focus:ring-1 focus:ring-blue-400";
-const emptyStateClasses = "text-gray-500 dark:text-gray-400 text-xs italic text-center py-3 px-2 bg-white/50 dark:bg-dark-bg/30 rounded-md";
-// --- End Style Definitions ---
+import Panel from '../ui/Panel';
+import Button from '../ui/Button';
+import IconButton from '../ui/IconButton';
+import Input from '../ui/Input';
+import { utilStyles, cardItemStyles } from '../../styles/commonStyles';
+import { hexToRgba } from '../../utils/colorUtils';
 
 interface CardSidebarProps {
   onOpenInfoModal: () => void;
-  onOpenEditModal: (type: 'NPC' | 'Dialogue', id: string, name: string, image?: string) => void;
+  onOpenEditModal: (type: 'NPC' | 'Dialogue', id: string, name: string, image?: string, accentColor?: string) => void;
+  isDataManagementVisible?: boolean;
+  onToggleDataManagement?: () => void;
+  headerButtons?: ReactNode; // Optional additional header buttons
+  betweenHeaderAndContent?: ReactNode; // Optional content to render between header and panels
 }
 
-const CardSidebar: React.FC<CardSidebarProps> = ({ onOpenInfoModal, onOpenEditModal }) => {
+const CardSidebar: React.FC<CardSidebarProps> = ({ 
+  onOpenInfoModal, 
+  onOpenEditModal,
+  isDataManagementVisible = false,
+  onToggleDataManagement,
+  headerButtons,
+  betweenHeaderAndContent
+}) => {
   const {
     npcs,
     selectedNpcId,
@@ -46,8 +41,6 @@ const CardSidebar: React.FC<CardSidebarProps> = ({ onOpenInfoModal, onOpenEditMo
   const [newConversationName, setNewConversationName] = useState<string>('');
   const [isAddingNpc, setIsAddingNpc] = useState<boolean>(false);
   const [isAddingConversation, setIsAddingConversation] = useState<boolean>(false);
-
-  const selectedNpc = selectedNpcData;
 
   const handleAddNpc = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,124 +60,317 @@ const CardSidebar: React.FC<CardSidebarProps> = ({ onOpenInfoModal, onOpenEditMo
     }
   };
 
-  const handleEditNpc = (npcId: string, name: string, image?: string) => {
-    onOpenEditModal('NPC', npcId, name, image);
+  const handleEditNpc = (npcId: string, name: string, image?: string, accentColor?: string) => {
+    onOpenEditModal('NPC', npcId, name, image, accentColor);
   };
 
   const handleEditConversation = (conversationId: string, name: string) => {
     onOpenEditModal('Dialogue', conversationId, name);
   };
 
+  const emptyStateContent = (message: string) => (
+    <div className="text-gray-300 text-xs italic text-center py-3 px-2 bg-black/40 rounded-md border border-gray-600">
+      {message}
+    </div>
+  );
+
+  // Render NPC list item with optional accent color
+  const renderNpcItem = (npc: any) => {
+    const isSelected = npc.id === selectedNpcId;
+    const accentColor = npc.accentColor; // Get the specific NPC's accent color
+    const useAccentStyle = isSelected && accentColor;
+
+    // Inline styles for dynamic colors and border
+    const itemStyles: React.CSSProperties = {};
+    itemStyles.borderWidth = '1px'; // Always 2px border
+    itemStyles.borderStyle = 'solid';
+
+    let bgClasses = ''; // Reset bgClasses
+
+    if (isSelected) {
+        if (useAccentStyle) {
+            // Use accent color for border and background (via inline style)
+            itemStyles.borderColor = accentColor;
+            itemStyles.backgroundColor = hexToRgba(accentColor, 0.2); // 20% opacity background
+            // No Tailwind background class needed here, inline style takes precedence
+        } else {
+            // Use default gray border and background (matching app style)
+            itemStyles.borderColor = '#6B7280'; // Selected gray border (gray-500)
+            bgClasses = "bg-gray-900/70"; // Default selected background
+        }
+    } else {
+        // Idle state - no background, only border
+        itemStyles.borderColor = '#757980'; // Lighter gray border for unselected state
+        bgClasses = 'hover:border-gray-500'; // Only keep hover effect, remove background
+    }
+
+    const baseClasses = cardItemStyles.base; // Base structure from commonStyles
+
+    return (
+      <div
+        key={npc.id}
+        className={`${baseClasses} ${bgClasses} npc-list-item group`} // Combine base, conditional bg, and group
+        style={itemStyles} // Apply dynamic inline styles
+      >
+        <button
+          onClick={() => selectNpc(npc.id)}
+          className={`${cardItemStyles.text} pl-16 relative`} // Ensure text styles are applied
+        >
+          {npc.name}
+        </button>
+
+        {/* Avatar */}
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden bg-gray-700 border border-gray-700 flex items-center justify-center">
+          {npc.image ? (
+            <img
+              src={npc.image}
+              alt={npc.name}
+              className="w-full h-full object-cover relative z-10"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center relative z-10">
+              <User size={20} className="text-gray-400" />
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className={cardItemStyles.actions.container}>
+          <button
+            className={cardItemStyles.actions.button + ' ' + cardItemStyles.actions.edit}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditNpc(npc.id, npc.name, npc.image, npc.accentColor);
+            }}
+            title="Edit NPC"
+          >
+            <Edit size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Render dialogue list item
+  const renderDialogueItem = (conv: any) => {
+    const isDialogueSelected = conv.id === selectedConversationId;
+    const npcAccentColor = selectedNpcData?.accentColor; // Parent NPC accent color
+    const useAccentStyle = isDialogueSelected && npcAccentColor;
+
+    // Inline styles for dynamic colors and border
+    const itemStyles: React.CSSProperties = {};
+    itemStyles.borderWidth = '2px'; // Always 2px border
+    itemStyles.borderStyle = 'solid';
+
+    let bgClasses = ''; // Reset bgClasses
+
+    if (isDialogueSelected) {
+        if (useAccentStyle) {
+            // Use accent color for border and background (via inline style)
+            itemStyles.borderColor = npcAccentColor;
+            itemStyles.backgroundColor = hexToRgba(npcAccentColor, 0.1); // 10% opacity background
+             // No Tailwind background class needed here
+        } else {
+            // Use default gray border and background (matching app style)
+            itemStyles.borderColor = '#6B7280'; // Selected gray border (gray-500)
+            bgClasses = "bg-gray-900/70"; // Default selected background
+        }
+    } else {
+        // Idle state - no background, only border
+        itemStyles.borderColor = '#757980'; // Lighter gray border for unselected state
+        bgClasses = 'hover:border-gray-500'; // Only keep hover effect, remove background
+    }
+
+    const baseClasses = cardItemStyles.base; // Base structure from commonStyles
+
+    return (
+      <div
+        key={conv.id}
+        className={`${baseClasses} ${bgClasses} group`} // Combine base, conditional bg, and group
+        style={itemStyles} // Apply dynamic inline styles
+      >
+        <button
+          onClick={() => selectConversation(conv.id)}
+          className={`${cardItemStyles.text} relative`} // Ensure text styles are applied
+        >
+          {conv.name}
+        </button>
+
+        {/* Action Buttons */}
+        <div className={cardItemStyles.actions.container}>
+          <button
+            className={cardItemStyles.actions.button + ' ' + cardItemStyles.actions.edit}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditConversation(conv.id, conv.name);
+            }}
+            title="Edit Dialogue"
+          >
+            <Edit size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <>
-      <div className="flex justify-start mb-4 px-1 w-64 gap-2">
-        <button className={sidebarIconButtonClasses} title="Options (Not Implemented)">
-          <Settings size={18} />
-        </button>
-        <button onClick={onOpenInfoModal} className={sidebarIconButtonClasses} title="Info & Shortcuts">
-          <Info size={18} />
-        </button>
+    <div className="flex flex-col gap-4">
+      {/* Header Buttons */}
+      <div className="flex justify-start mb-4 px-1 w-64 gap-2 items-center">
+        <IconButton
+          icon={<Settings size={18} />}
+          label="Options (Not Implemented)"
+          variant="original"
+        />
+        <IconButton
+          icon={<Info size={18} />}
+          onClick={onOpenInfoModal}
+          label="Info & Shortcuts"
+          variant="original"
+        />
         <a
           href="https://rubengalandiaz.notion.site/dialogue-tree-roadmap"
           target="_blank"
           rel="noopener noreferrer"
-          className={sidebarIconButtonClasses} title="Roadmap" >
-          <Map size={18} />
+          className="inline-block"
+        >
+          <IconButton
+            icon={<Map size={18} />}
+            label="Roadmap & Info"
+            variant="original"
+          />
         </a>
+        
+        {/* Data Management Button */}
+        {onToggleDataManagement && (
+          <IconButton
+            icon={isDataManagementVisible ? <X size={18} /> : <Database size={18} />}
+            label={isDataManagementVisible ? 'Hide Data Management' : 'Show Data Management'}
+            onClick={onToggleDataManagement}
+            variant="original"
+          />
+        )}
+
+        {/* Optional additional header buttons */}
+        {headerButtons}
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className={panelBaseClasses}>
-          <div className="flex justify-between items-center mb-2 px-1">
-            <h2 className={panelTitleClasses}>NPCs</h2>
-            <button onClick={() => setIsAddingNpc(!isAddingNpc)} className={addIconButtonClasses} title="Add NPC">
-              <Plus size={20} />
-            </button>
-          </div>
+      {/* Optional content between header and panels */}
+      {betweenHeaderAndContent}
 
+      {/* Content Panels */}
+      <div className="flex flex-col gap-4">
+        {/* NPC Panel */}
+        <Panel
+          title="NPCs"
+          actions={
+            <IconButton
+              icon={<Plus size={20} />}
+              onClick={() => setIsAddingNpc(!isAddingNpc)}
+              label="Add NPC"
+              variant="gray"
+            />
+          }
+          variant="sidebar"
+        >
           {isAddingNpc && (
-            <form onSubmit={handleAddNpc} className="mb-3 px-1">
-              <input type="text" value={newNpcName} onChange={(e) => setNewNpcName(e.target.value)} placeholder="NPC Name" autoFocus className={inputBaseClasses} />
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setIsAddingNpc(false)} className={buttonSecondaryClasses}>Cancel</button>
-                <button type="submit" className={buttonPrimaryClasses}>Add</button>
+            <form onSubmit={handleAddNpc} className="mb-3">
+              <Input
+                value={newNpcName}
+                onChange={(e) => setNewNpcName(e.target.value)}
+                placeholder="NPC Name"
+                autoFocus
+                required
+              />
+              <div className={utilStyles.flexBetween + " mt-2"}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsAddingNpc(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  type="submit"
+                >
+                  Add
+                </Button>
               </div>
             </form>
           )}
 
+          {/* NPC List */}
           <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 card-scrollbar">
-            {npcs.map((npc) => (
-              <div key={npc.id} className={`${cardItemBaseClasses} min-h-[4.5rem] flex items-center ${npc.id === selectedNpcId ? cardItemSelectedClasses : cardItemIdleClasses}`}>
-                <button onClick={() => selectNpc(npc.id)} className={`${cardItemTextClasses} pl-16`}>
-                  {npc.name}
-                </button>
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-10 h-10 rounded-full overflow-hidden border border-gray-300 dark:border-gray-600">
-                  {npc.image ? (
-                    <img src={npc.image} alt={npc.name} className="w-full h-full object-cover"/>
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      <User size={20} className="text-gray-500 dark:text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <button className={cardItemIconClasses} onClick={() => handleEditNpc(npc.id, npc.name, npc.image)} title="Edit NPC">
-                  <Settings size={20} />
-                </button>
-              </div>
-            ))}
-            {npcs.length === 0 && !isAddingNpc && ( <div className={emptyStateClasses}> No NPCs created yet </div> )}
+            {npcs.map(renderNpcItem)}
+            {npcs.length === 0 && !isAddingNpc && emptyStateContent("No NPCs created yet")}
           </div>
-        </div>
+        </Panel>
 
-        <div className={`${panelBaseClasses} max-h-80`}>
-          <div className="flex justify-between items-center mb-2 px-1">
-            <h2 className={panelTitleClasses}>Dialogues</h2>
-            {npcs.length > 0 && (
-               <button
-                 onClick={() => setIsAddingConversation(!isAddingConversation)}
-                 disabled={!selectedNpcId}
-                 title="Add Dialogue"
-                 className={`${ selectedNpcId ? addIconButtonClasses : addIconDisabledClasses }`}
-               >
-                 <Plus size={20} />
-               </button>
-            )}
-          </div>
-
-          {selectedNpc ? (
+        {/* Dialogue Panel */}
+        <Panel
+          title="Dialogues"
+          actions={
+            npcs.length > 0 && (
+              <IconButton
+                icon={<Plus size={20} />}
+                onClick={() => setIsAddingConversation(!isAddingConversation)}
+                disabled={!selectedNpcId}
+                label={selectedNpcId ? "Add Dialogue" : "Select an NPC first"}
+                variant="gray"
+              />
+            )
+          }
+          variant="sidebar"
+          scrollable
+          maxHeight="320px"
+        >
+          {selectedNpcData ? (
             <>
               {isAddingConversation && (
-                <form onSubmit={handleAddConversation} className="mb-3 px-1">
-                  <input type="text" value={newConversationName} onChange={(e) => setNewConversationName(e.target.value)} placeholder="Dialogue Name" autoFocus className={inputBaseClasses}/>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => setIsAddingConversation(false)} className={buttonSecondaryClasses}>Cancel</button>
-                    <button type="submit" className={buttonPrimaryClasses}>Add</button>
+                <form onSubmit={handleAddConversation} className="mb-3">
+                  <Input
+                    value={newConversationName}
+                    onChange={(e) => setNewConversationName(e.target.value)}
+                    placeholder="Dialogue Name"
+                    autoFocus
+                    required
+                  />
+                  <div className={utilStyles.flexBetween + " mt-2"}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsAddingConversation(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      type="submit"
+                    >
+                      Add
+                    </Button>
                   </div>
                 </form>
               )}
 
+              {/* Dialogue List */}
               <div className="space-y-1.5 overflow-y-auto max-h-48 pr-1 card-scrollbar">
-                {selectedNpc.conversations.map((conv) => (
-                  <div key={conv.id} className={`${cardItemBaseClasses} ${conv.id === selectedConversationId ? cardItemSelectedClasses : cardItemIdleClasses}`}>
-                    <button onClick={() => selectConversation(conv.id)} className={cardItemTextClasses}>
-                      {conv.name}
-                    </button>
-                    <button className={cardItemIconClasses} onClick={() => handleEditConversation(conv.id, conv.name)} title="Edit Dialogue">
-                      <Settings size={20} />
-                    </button>
-                  </div>
-                ))}
-                {selectedNpc.conversations.length === 0 && !isAddingConversation && ( <div className={emptyStateClasses}> No dialogues created yet </div> )}
+                {selectedNpcData.conversations.map(renderDialogueItem)}
+                {selectedNpcData.conversations.length === 0 && !isAddingConversation &&
+                  emptyStateContent("No dialogues created yet")}
               </div>
             </>
           ) : (
-             <div className={`${emptyStateClasses} bg-white/70 dark:bg-dark-bg/50 border border-blue-50 dark:border-dark-border shadow-inner p-3`}>
-              Select an NPC to see dialogues
-             </div>
+            <div className="text-gray-300 text-xs italic text-center py-3 px-2 bg-black/40 rounded-md border border-gray-600">
+              {npcs.length > 0 ? 'Select an NPC to see dialogues' : 'Create an NPC first'}
+            </div>
           )}
-        </div>
+        </Panel>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -1,3 +1,5 @@
+// File: src/components/Markdown/MarkdownRenderer.tsx
+
 import React from 'react';
 
 interface MarkdownRendererProps {
@@ -33,19 +35,19 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ markdown, className
     html = html.replace(/^## (.*$)/gm, '<h2 class="text-md font-bold mb-1">$1</h2>');
     html = html.replace(/^### (.*$)/gm, '<h3 class="text-base font-bold mb-1">$1</h3>');
 
-    // Handle unordered lists - * item, - item
+    // Handle unordered lists - * item, - item (using CSS classes from index.css)
     // Replace each list item first
     html = html.replace(/^[*-] (.*$)/gm, '<li>$1</li>');
     // Then wrap consecutive <li> elements with <ul>
     html = html.replace(/(<li>.*<\/li>)(?!\n<li>)/g, '<ul class="list-disc ml-5 mb-2">$1</ul>');
 
-    // Handle ordered lists - 1. item
+    // Handle ordered lists - 1. item (using CSS classes from index.css)
     // Replace each list item first
     html = html.replace(/^\d+\. (.*$)/gm, '<li>$1</li>');
     // Then wrap consecutive <li> elements with <ol>
     html = html.replace(/(<li>.*<\/li>)(?!\n<li>)/g, '<ol class="list-decimal ml-5 mb-2">$1</ol>');
 
-    // Handle code blocks - `code`
+    // Handle code blocks - `code` (using CSS classes from index.css)
     html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded text-sm font-mono">$1</code>');
 
     // Handle blockquotes - > text
@@ -61,8 +63,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ markdown, className
   const htmlContent = parseMarkdown(markdown);
 
   return (
-    <div 
-      className={`markdown-content whitespace-pre-wrap ${className}`}
+    <div
+      className={`markdown-content whitespace-pre-wrap ${className}`} // Use class defined in index.css for base styling
       dangerouslySetInnerHTML={{ __html: htmlContent }}
     />
   );

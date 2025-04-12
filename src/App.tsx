@@ -1,17 +1,15 @@
+// File: src/App.tsx
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import { ArrowDown, ArrowRight, GitFork } from 'lucide-react';
 
-import useLayoutToggle from './hooks/useLayoutToggle';
-import useThemeToggle from './hooks/useThemeToggle';
+import useNpcLayoutToggle from './hooks/useNpcLayoutToggle';
 
 import DialogueFlow from './components/DialogueFlow';
 import Header from './components/Header';
-import NodePositioner from './components/NodePositioner';
 import CardSidebar from './components/CardSidebar';
 import AutoSaveIndicator from './components/AutoSaveIndicator';
 import DataActions from './components/DataActions';
-import DatabaseManager from './components/DatabaseManager';
 import Toolbar, { ToolType } from './components/Toolbar';
 import EditModal from './components/EditModal';
 import InfoModal from './components/InfoModal';
@@ -25,14 +23,13 @@ import {
 import { calculateDagreLayout } from './utils/dagreLayout';
 import { PositioningMode } from './types';
 
-import './styles/index.css';
-
 interface EditModalState {
   isOpen: boolean;
   entityType: 'NPC' | 'Dialogue';
   entityId: string;
   currentName: string;
   currentImage?: string;
+  currentAccentColor?: string;
 }
 
 const App: React.FC = () => {
@@ -44,7 +41,7 @@ const App: React.FC = () => {
   const isLoading = useDialogueStore(state => state.isLoading);
   const selectedConversationId = useDialogueStore(state => state.selectedConversationId);
   const activeNodesLength = useDialogueStore(state => state.activeNodes().length);
-  const activeEdgesLength = useDialogueStore(state => state.activeEdges().length);
+  const selectedNpc = useDialogueStore(state => state.selectedNpc());
 
   const {
       deleteNpc,
@@ -52,6 +49,7 @@ const App: React.FC = () => {
       updateNpcName,
       updateConversationName,
       updateNpcImage,
+      updateNpcAccentColor,
   } = useSidebarData();
 
   const [isDataManagementVisible, setIsDataManagementVisible] = useState<boolean>(false);
@@ -60,19 +58,11 @@ const App: React.FC = () => {
   const [layoutOptions, setLayoutOptions] = useState({ spacing: 150 });
   const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
   const [editModalState, setEditModalState] = useState<EditModalState>({
-    isOpen: false, entityType: 'NPC', entityId: '', currentName: '', currentImage: undefined,
+    isOpen: false, entityType: 'NPC', entityId: '', currentName: '', currentImage: undefined, currentAccentColor: undefined,
   });
   const [currentTool, setCurrentTool] = useState<ToolType | null>(null);
 
-  const { isHorizontal, toggleLayout, setLayout } = useLayoutToggle(
-    updateNodeLayout,
-    (newIsHorizontal) => { console.log("[App] Direction changed:", newIsHorizontal ? 'horizontal' : 'vertical'); },
-    true,
-    true
-  );
-
-  const prefersDarkMode = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-  const { isDarkMode, toggleTheme } = useThemeToggle(prefersDarkMode);
+  const { isHorizontal, setLayout } = useNpcLayoutToggle();
 
   const triggerFitView = useCallback(() => {
     fitViewRef.current?.();
@@ -103,26 +93,35 @@ const App: React.FC = () => {
 
   const handleOpenInfoModal = useCallback(() => { setIsInfoModalOpen(true); }, []);
   const handleCloseInfoModal = useCallback(() => { setIsInfoModalOpen(false); }, []);
-  const handleOpenEditModal = useCallback((type: 'NPC' | 'Dialogue', id: string, name: string, image?: string) => {
-      setEditModalState({ isOpen: true, entityType: type, entityId: id, currentName: name, currentImage: image });
+
+  const handleOpenEditModal = useCallback((type: 'NPC' | 'Dialogue', id: string, name: string, image?: string, accentColor?: string) => {
+      setEditModalState({ isOpen: true, entityType: type, entityId: id, currentName: name, currentImage: image, currentAccentColor: accentColor });
   }, []);
+
   const handleCloseEditModal = useCallback(() => { setEditModalState(prev => ({ ...prev, isOpen: false })); }, []);
 
-  const handleSaveChanges = useCallback((newName: string, imageDataUrl?: string) => {
+  const handleSaveChanges = useCallback((newName: string, imageDataUrl?: string, newColor?: string) => {
     const { entityType, entityId } = editModalState;
+    if (!entityId) return;
+
     if (entityType === 'NPC') {
        updateNpcName(entityId, newName);
        if (imageDataUrl !== undefined) {
          updateNpcImage(entityId, imageDataUrl || undefined);
        }
+       if (newColor) {
+           updateNpcAccentColor(entityId, newColor);
+       }
     } else if (entityType === 'Dialogue') {
        updateConversationName(entityId, newName);
     }
     handleCloseEditModal();
-  }, [editModalState, updateNpcName, updateNpcImage, updateConversationName, handleCloseEditModal]);
+  }, [editModalState, updateNpcName, updateNpcImage, updateConversationName, updateNpcAccentColor, handleCloseEditModal]);
 
   const handleDeleteEntity = useCallback(() => {
     const { entityType, entityId } = editModalState;
+    if (!entityId) return;
+
     if (entityType === 'NPC') {
       deleteNpc(entityId);
     } else if (entityType === 'Dialogue') {
@@ -135,6 +134,10 @@ const App: React.FC = () => {
     setPositioningMode('dagre');
     const currentNodes = useDialogueStore.getState().activeNodes();
     const currentEdges = useDialogueStore.getState().activeEdges();
+    if (currentNodes.length === 0) {
+        setIsLayoutOptionsOpen(false);
+        return;
+    }
     const dagreDirection = isHorizontal ? 'LR' : 'TB';
     const newPositions = calculateDagreLayout(currentNodes, currentEdges, dagreDirection, layoutOptions.spacing);
      if (Object.keys(newPositions).length > 0) {
@@ -154,18 +157,6 @@ const App: React.FC = () => {
   }, [loadInitialData]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!mediaQuery) return;
-    const handleChange = (e: MediaQueryListEvent) => {
-        if (e.matches !== isDarkMode) {
-            toggleTheme();
-        }
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [isDarkMode, toggleTheme]);
-
-  useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (useDialogueStore.getState().isSaving) {
         event.preventDefault();
@@ -183,19 +174,15 @@ const App: React.FC = () => {
    }, [
        isLoading,
        selectedConversationId,
-       isHorizontal,
-       activeNodesLength,
-       activeEdgesLength,
+       activeNodesLength
      ]);
 
   return (
-    <div className={`w-screen h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
-      <DatabaseManager />
-
+    <div className="w-screen h-screen relative overflow-hidden border-0 dark">
       {isLoading && (
          <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-[100]">
             <div className="flex flex-col items-center">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-400 border-t-transparent rounded-full mb-3"></div>
+                <div className="animate-spin h-8 w-8 border-4 border-gray-400 border-t-transparent rounded-full mb-3"></div>
                 <p className="text-white text-lg font-medium">Loading Dialogue Data...</p>
             </div>
          </div>
@@ -208,7 +195,7 @@ const App: React.FC = () => {
         />
       </div>
 
-      <div className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {!isLoading && (
           <ReactFlowProvider>
               <DialogueFlow
@@ -221,90 +208,109 @@ const App: React.FC = () => {
       </div>
 
       <div className="absolute top-4 right-4 z-30 flex flex-col space-y-3 items-end">
-        <div className="flex space-x-3 items-start">
-             <NodePositioner onClick={toggleLayoutOptions} />
-             <Header
-               isDarkMode={isDarkMode}
-               onToggleTheme={toggleTheme}
-               isDataManagementVisible={isDataManagementVisible}
-               onToggleDataManagement={toggleDataManagement}
-             />
-        </div>
+        <Header
+          onToggleLayoutOptions={toggleLayoutOptions}
+        />
 
          {isLayoutOptionsOpen && (
             <>
-              <div className="w-64 bg-white dark:bg-dark-surface rounded-2xl shadow-lg overflow-hidden z-50 border-2 border-blue-100 dark:border-dark-border transition-colors duration-300">
-                  <div className="p-4 border-b border-gray-200 dark:border-dark-border">
-                    <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300">
-                      Layout Options
+              <div className="w-64 bg-[var(--color-surface)] rounded-2xl shadow-lg overflow-hidden z-50 border-2 border-[var(--color-border)] transition-colors duration-300">
+                  <div className="p-4 border-b border-[var(--color-border)]">
+                    <h3 className="text-md font-semibold text-[var(--color-text)]">
+                      Layout Options for NPC
                     </h3>
+                    {selectedNpc ? (
+                      <p className="text-sm text-gray-300 mt-1">
+                        {selectedNpc.name}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic mt-1">
+                        No NPC selected
+                      </p>
+                    )}
                   </div>
 
-                  <div className="p-4 border-b border-gray-200 dark:border-dark-border">
-                    <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
-                      Direction
-                    </h4>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSetDirection(true)}
-                        className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm ${
-                          isHorizontal
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
-                            : 'bg-gray-100 text-gray-700 dark:bg-dark-bg dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        <ArrowRight size={16} />
-                        <span>Horizontal</span>
-                      </button>
-                      <button
-                        onClick={() => handleSetDirection(false)}
-                        className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm ${
-                          !isHorizontal
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
-                            : 'bg-gray-100 text-gray-700 dark:bg-dark-bg dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        <ArrowDown size={16} />
-                        <span>Vertical</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 border-b border-gray-200 dark:border-dark-border">
-                    <button
-                      onClick={applyLayoutAndClose}
-                      className="w-full py-3 px-4 flex items-center gap-2 bg-yellow-50 hover:bg-yellow-100
-                              dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200
-                              rounded-md transition-colors"
-                    >
-                      <GitFork size={18} />
-                      <div className="text-left">
-                        <div className="font-medium">Smart Layout</div>
-                        <div className="text-xs text-yellow-600 dark:text-yellow-300">Apply automatic Dagre layout</div>
+                  {selectedNpc ? (
+                    <>
+                      <div className="p-4 border-b border-[var(--color-border)]">
+                        <h4 className="text-xs font-medium text-gray-400 mb-2 uppercase">
+                          Direction
+                        </h4>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSetDirection(true)}
+                            className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm transition-colors ${
+                              isHorizontal
+                                ? 'bg-gray-900 text-gray-200 font-medium ring-1 ring-gray-700' 
+                                : 'bg-[var(--color-bg)] text-[var(--color-text)] hover:bg-gray-800'
+                            }`}
+                            disabled={!selectedNpc}
+                          >
+                            <ArrowRight size={16} />
+                            <span>Horizontal</span>
+                          </button>
+                          <button
+                            onClick={() => handleSetDirection(false)}
+                            className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm transition-colors ${
+                              !isHorizontal
+                                ? 'bg-gray-900 text-gray-200 font-medium ring-1 ring-gray-700'
+                                : 'bg-[var(--color-bg)] text-[var(--color-text)] hover:bg-gray-800'
+                            }`}
+                            disabled={!selectedNpc}
+                          >
+                            <ArrowDown size={16} />
+                            <span>Vertical</span>
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Each NPC maintains its own layout preference.
+                        </p>
                       </div>
-                    </button>
-                  </div>
 
-                  <div className="p-4 border-t border-gray-200 dark:border-dark-border">
-                    <div className="mb-3">
-                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
-                        Node Spacing
-                      </label>
-                      <div className="flex items-center">
-                        <input
-                          type="range"
-                          min="0"
-                          max="300"
-                          value={layoutOptions.spacing}
-                          onChange={(e) => {
-                            setLayoutOptions({ spacing: Number(e.target.value) });
-                          }}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                        />
-                        <span className="ml-2 text-xs text-gray-600 dark:text-gray-400 w-8">{layoutOptions.spacing}px</span>
+                      <div className="p-4 border-b border-[var(--color-border)]">
+                        <button
+                          onClick={applyLayoutAndClose}
+                          className="w-full py-3 px-4 flex items-center gap-2
+                                  bg-yellow-900/30 hover:bg-yellow-900/50 text-yellow-200
+                                  rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-1 focus:ring-offset-[var(--color-surface)]"
+                          title="Automatically arrange nodes using Dagre algorithm"
+                          disabled={!selectedNpc}
+                        >
+                          <GitFork size={18} />
+                          <div className="text-left">
+                            <div className="font-medium">Smart Layout</div>
+                            <div className="text-xs text-yellow-300">Apply automatic layout</div>
+                          </div>
+                        </button>
+                      </div>
+
+                      <div className="p-4">
+                        <label htmlFor='node-spacing-range' className="block text-xs font-medium text-gray-400 mb-2 uppercase">
+                          Node Spacing
+                        </label>
+                        <div className="flex items-center">
+                          <input
+                            id='node-spacing-range'
+                            type="range"
+                            min="50"
+                            max="300"
+                            step="10"
+                            value={layoutOptions.spacing}
+                            onChange={(e) => setLayoutOptions({ spacing: Number(e.target.value) })}
+                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 focus:ring-offset-[var(--color-surface)]"
+                            disabled={!selectedNpc}
+                          />
+                          <span className="ml-3 text-xs text-gray-400 w-8 text-right">{layoutOptions.spacing}px</span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-4 text-center">
+                      <div className="text-sm text-gray-400">
+                        Please select an NPC to customize its layout options.
                       </div>
                     </div>
-                  </div>
+                  )}
               </div>
 
               <div
@@ -314,9 +320,6 @@ const App: React.FC = () => {
             </>
          )}
 
-         {isDataManagementVisible && (
-           <DataActions onDataImported={handleDataImported} />
-         )}
          <NodeInfoPanel />
       </div>
 
@@ -324,6 +327,13 @@ const App: React.FC = () => {
          <CardSidebar
             onOpenInfoModal={handleOpenInfoModal}
             onOpenEditModal={handleOpenEditModal}
+            isDataManagementVisible={isDataManagementVisible}
+            onToggleDataManagement={toggleDataManagement}
+            betweenHeaderAndContent={
+              isDataManagementVisible ? (
+                <DataActions onDataImported={handleDataImported} />
+              ) : null
+            }
          />
       </div>
 
@@ -341,6 +351,7 @@ const App: React.FC = () => {
         title={`Edit ${editModalState.entityType}`}
         currentName={editModalState.currentName}
         currentImage={editModalState.currentImage}
+        currentAccentColor={editModalState.currentAccentColor}
         entityType={editModalState.entityType}
       />
     </div>
