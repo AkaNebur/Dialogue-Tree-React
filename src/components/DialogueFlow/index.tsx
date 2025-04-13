@@ -108,8 +108,25 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
         let newNodeType: 'user' | 'npc' | 'custom' | 'input';
         let newNodeLabelPrefix: string;
 
-        // Determine new node type based on current tool or source node type
-        if (currentTool === 'user') {
+        // Get source node to determine its type
+        const sourceNode = reactFlowInstance.getNode(sourceNodeId);
+        
+        // Determine new node type based on auto mode, current tool, or source node type
+        if (currentTool === 'auto') {
+          // Auto alternating mode - determine opposite of source node
+          if (sourceNode?.type === 'user') {
+            newNodeType = 'npc';
+            newNodeLabelPrefix = 'NPC Response';
+          } else if (sourceNode?.type === 'npc' || sourceNode?.type === 'input') {
+            newNodeType = 'user';
+            newNodeLabelPrefix = 'User Response';
+          } else {
+            // Default fallback
+            newNodeType = 'user';
+            newNodeLabelPrefix = 'User Response';
+          }
+          console.log(`[DialogueFlow] Auto mode: Creating ${newNodeType} node after ${sourceNode?.type} node`);
+        } else if (currentTool === 'user') {
           newNodeType = 'user';
           newNodeLabelPrefix = 'User Response';
         } else if (currentTool === 'npc') {
@@ -117,7 +134,6 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
           newNodeLabelPrefix = 'NPC Response';
         } else {
           // Default: NPC follows start, User follows anything else
-          const sourceNode = reactFlowInstance.getNode(sourceNodeId);
           newNodeType = (sourceNode?.type === 'input') ? 'npc' : 'user';
           newNodeLabelPrefix = (newNodeType === 'npc') ? 'NPC Response' : 'User Response';
         }

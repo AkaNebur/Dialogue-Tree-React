@@ -37,7 +37,6 @@ const App: React.FC = () => {
 
   const loadInitialData = useDialogueStore(state => state.loadInitialData);
   const updateNodePositions = useDialogueStore(state => state.updateNodePositions);
-  const updateNodeLayout = useDialogueStore(state => state.updateNodeLayout);
   const isLoading = useDialogueStore(state => state.isLoading);
   const selectedConversationId = useDialogueStore(state => state.selectedConversationId);
   const activeNodesLength = useDialogueStore(state => state.activeNodes().length);

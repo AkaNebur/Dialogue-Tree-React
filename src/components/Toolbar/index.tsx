@@ -1,17 +1,18 @@
 // File: src/components/Toolbar/index.tsx
 
-// src/components/Toolbar/index.tsx - Updated with new UI components
+// src/components/Toolbar/index.tsx - Updated with auto alternating mode
 import React from 'react';
 import {
-   User,
-  UserSquare
+  User,
+  UserSquare,
+  Repeat
 } from 'lucide-react';
 import { useSidebarData } from '../../store/dialogueStore';
 import IconButton from '../ui/IconButton';
 import { tooltipStyles } from '../../styles/commonStyles';
 
-// Tool type enum for tracking selected tool (Only node creation tools left)
-export type ToolType = 'user' | 'npc';
+// Tool type enum for tracking selected tool (Added 'auto' for alternating mode)
+export type ToolType = 'user' | 'npc' | 'auto';
 
 interface ToolbarProps {
   className?: string;
@@ -47,7 +48,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       {/* Node Creation Tools */}
       <ToolbarButton
         icon={<UserSquare size={18} />}
-        label="Node User"
+        label="User Node"
         active={activeTool === 'user'}
         onClick={() => handleToolSelect('user')}
       />
@@ -63,9 +64,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
              </div>
           )
         }
-        label={selectedNpc ? `Node NPC: ${selectedNpc.name}` : "Node NPC"}
+        label={selectedNpc ? `NPC Node: ${selectedNpc.name}` : "NPC Node"}
         active={activeTool === 'npc'}
         onClick={() => handleToolSelect('npc')}
+      />
+      
+      {/* New Auto Alternate Mode Button */}
+      <ToolbarButton
+        icon={<Repeat size={18} />}
+        label="Auto Alternate Mode"
+        active={activeTool === 'auto'}
+        onClick={() => handleToolSelect('auto')}
       />
     </div>
   );
