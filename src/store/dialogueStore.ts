@@ -13,6 +13,8 @@ import {
   Node,
 } from 'reactflow';
 import { debounce } from 'lodash';
+// Import arrayMove utility
+import { arrayMove } from '@dnd-kit/sortable';
 import {
   initialNpcs,
   createInitialConversationData,
@@ -24,7 +26,7 @@ import {
 import {
   DialogueNode,
   DialogueEdge,
-  NPC, 
+  NPC,
   Conversation,
 } from '../types';
 import { loadAllNpcs, saveAllNpcs } from '../services/dialogueService';
@@ -60,12 +62,14 @@ interface DialogueState {
   updateNpcImage: (npcId: string, imageDataUrl: string | undefined) => void;
   updateNpcAccentColor: (npcId: string, color: string) => void;
   updateNpcLayoutDirection: (npcId: string, isHorizontal: boolean) => void;
+  reorderNpcs: (oldIndex: number, newIndex: number) => void; // New NPC reorder action
 
   // Conversation Actions
   addConversation: (npcId: string, name: string) => void;
   selectConversation: (conversationId: string) => void;
   deleteConversation: (conversationId: string) => void;
   updateConversationName: (conversationId: string, newName: string) => void;
+  reorderConversations: (npcId: string, oldIndex: number, newIndex: number) => void; // New Conversation reorder action
 
   // React Flow Actions
   onNodesChange: (changes: NodeChange[]) => void;
@@ -168,6 +172,10 @@ export const useDialogueStore = create(
             if (npc.isHorizontal === undefined) {
               npc.isHorizontal = DEFAULT_NPC_LAYOUT_HORIZONTAL;
             }
+            // Ensure conversations are always an array
+            if (!Array.isArray(npc.conversations)) {
+                npc.conversations = [];
+            }
           });
 
           try {
@@ -247,6 +255,7 @@ export const useDialogueStore = create(
           if (npc) {
             set(draft => {
               draft.selectedNpcId = npcId;
+              // Select first conversation or null if none exist
               draft.selectedConversationId = npc.conversations[0]?.id || null;
             });
           }
@@ -325,7 +334,7 @@ export const useDialogueStore = create(
           if (npc) {
             npc.isHorizontal = isHorizontal;
             console.log(`[Store] Updated layout direction for NPC ${npcId} to ${isHorizontal ? 'horizontal' : 'vertical'}`);
-            
+
             if (npcId === draft.selectedNpcId) {
               const { npcIndex, convIndex } = findIndices(draft);
               if (npcIndex !== -1 && convIndex !== -1) {
@@ -345,22 +354,39 @@ export const useDialogueStore = create(
         triggerSave();
       },
 
+      // --- New Reorder Action for NPCs ---
+      reorderNpcs: (oldIndex, newIndex) => {
+        set(draft => {
+            if (oldIndex < 0 || oldIndex >= draft.npcs.length || newIndex < 0 || newIndex >= draft.npcs.length) {
+              console.warn(`[Store] Invalid indices for reordering NPCs: old=${oldIndex}, new=${newIndex}`);
+              return;
+            }
+            draft.npcs = arrayMove(draft.npcs, oldIndex, newIndex);
+            console.log(`[Store] Reordered NPCs.`);
+        });
+        triggerSave();
+      },
+
       addConversation: (npcId, name) => {
         if (!npcId) return;
         const newConversationId = IdManager.generateConversationId();
         const newName = name?.trim() || `New Conversation ${newConversationId.split('-')[1]}`;
-        
+
         set(draft => {
           const npc = draft.npcs.find((n) => n.id === npcId);
           if (npc) {
             const isHorizontal = npc.isHorizontal !== undefined ? npc.isHorizontal : DEFAULT_NPC_LAYOUT_HORIZONTAL;
-            
+
             const newConversation: Conversation = {
               id: newConversationId,
               name: newName,
               ...createInitialConversationData(newName, isHorizontal),
             };
-            
+
+            // Ensure conversations array exists
+            if (!Array.isArray(npc.conversations)) {
+                npc.conversations = [];
+            }
             npc.conversations.push(newConversation);
             draft.selectedConversationId = newConversationId;
           }
@@ -421,6 +447,24 @@ export const useDialogueStore = create(
                     startNode.data.label = `Start: ${finalName}`;
                 }
             }
+        });
+        triggerSave();
+      },
+
+      // --- New Reorder Action for Conversations ---
+      reorderConversations: (npcId, oldIndex, newIndex) => {
+        set(draft => {
+            const npc = draft.npcs.find(n => n.id === npcId);
+            if (!npc) {
+                console.warn(`[Store] NPC ${npcId} not found for reordering conversations.`);
+                return;
+            }
+            if (oldIndex < 0 || oldIndex >= npc.conversations.length || newIndex < 0 || newIndex >= npc.conversations.length) {
+                console.warn(`[Store] Invalid indices for reordering conversations: old=${oldIndex}, new=${newIndex}`);
+                return;
+            }
+            npc.conversations = arrayMove(npc.conversations, oldIndex, newIndex);
+            console.log(`[Store] Reordered conversations for NPC ${npcId}.`);
         });
         triggerSave();
       },
@@ -532,12 +576,12 @@ export const useDialogueStore = create(
              if (npcIndex !== -1 && convIndex !== -1) {
                  const conv = draft.npcs[npcIndex].conversations[convIndex];
                  if (!conv.nodes) return;
-                 
+
                  conv.nodes.forEach((node) => {
                      node.sourcePosition = isHorizontal ? Position.Right : Position.Bottom;
                      node.targetPosition = isHorizontal ? Position.Left : Position.Top;
                  });
-                 
+
                  draft.npcs[npcIndex].isHorizontal = isHorizontal;
              }
          });
@@ -631,6 +675,9 @@ export const useSidebarData = () => useDialogueStore((state) => ({
     updateNpcAccentColor: state.updateNpcAccentColor,
     updateNpcLayoutDirection: state.updateNpcLayoutDirection,
     selectedNpc: state.selectedNpc(),
+    // --- Export new reorder actions ---
+    reorderNpcs: state.reorderNpcs,
+    reorderConversations: state.reorderConversations,
 }));
 
 export const useFlowData = () => useDialogueStore((state) => ({
