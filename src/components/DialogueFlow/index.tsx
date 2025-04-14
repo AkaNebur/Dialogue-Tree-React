@@ -102,7 +102,6 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
       // Only proceed if the drop target is the pane
       if (targetIsPane) {
         const { nodeId: sourceNodeId, handleId: sourceHandleId } = connectingInfo;
-        const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
         const newNodeId = getNextNodeId();
 
         let newNodeType: 'user' | 'npc' | 'custom' | 'input';
@@ -138,10 +137,25 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
           newNodeLabelPrefix = (newNodeType === 'npc') ? 'NPC Response' : 'User Response';
         }
 
+        // Get raw mouse position and convert to flow position
+        const mousePosition = reactFlowInstance.screenToFlowPosition({ 
+          x: event.clientX, 
+          y: event.clientY 
+        });
+        
+        // Get node dimensions based on node type - adjust these values based on actual rendered sizes
+        const nodeWidth = newNodeType === 'npc' || newNodeType === 'user' ? 250 : 180;
+        
+        // Calculate position so mouse is at center-top of node
+        const position = {
+          x: mousePosition.x - (nodeWidth / 2),
+          y: mousePosition.y
+        };
+
         const newNode: DialogueNodeType = {
           id: newNodeId,
           type: newNodeType,
-          position,
+          position: position,
           data: { label: `${newNodeLabelPrefix} ${newNodeId}`, text: '' },
           sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
           targetPosition: isHorizontal ? Position.Left : Position.Top,
@@ -154,7 +168,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
           sourceHandle: sourceHandleId, // Use the handle the connection started from
         };
 
-        console.log(`[DialogueFlow] Creating node ${newNodeId} of type ${newNodeType} and edge ${newEdge.id}`);
+        console.log(`[DialogueFlow] Creating node ${newNodeId} of type ${newNodeType} at position:`, position);
         setNodes((nds) => [...nds, newNode]);
         setEdges((eds) => [...eds, newEdge]);
       }
