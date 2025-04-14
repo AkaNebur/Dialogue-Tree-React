@@ -21,6 +21,7 @@ export interface DialogueNodeData {
   label: string; // Node's title/identifier in the header
   className?: string;
   text?: string; // Body content
+  npcId?: string; // ID of the associated NPC for 'npc' type nodes
 }
 
 export type DialogueNode = Node<DialogueNodeData>;

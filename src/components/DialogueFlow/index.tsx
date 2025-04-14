@@ -18,8 +18,8 @@ import UserNode from './UserNode';     // User node wrapper
 import NpcNode from './NpcNode';       // NPC node wrapper
 import { ToolType } from '../Toolbar';
 
-import { useFlowData } from '../../store/dialogueStore';
-import { getNextNodeId } from '../../constants/initialData';
+// --- MODIFIED: Import store and helper ---
+import { useFlowData, useDialogueStore, createDialogueNode } from '../../store/dialogueStore';
 import { DialogueNode as DialogueNodeType, DialogueEdge } from '../../types';
 
 // Define nodeTypes mapping string identifiers to the component implementations
@@ -64,6 +64,9 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
   // Ref to store connection start details
   const connectingNode = useRef<ConnectingNodeRef | null>(null);
 
+  // --- Get selectedNpcId from store (used for default NPC in new nodes) ---
+  const selectedNpcId = useDialogueStore(state => state.selectedNpcId);
+
   const handleFitView = useCallback(() => {
     reactFlowInstance?.fitView({ padding: 0.6, duration: 400 });
   }, [reactFlowInstance]);
@@ -102,25 +105,21 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
       // Only proceed if the drop target is the pane
       if (targetIsPane) {
         const { nodeId: sourceNodeId, handleId: sourceHandleId } = connectingInfo;
-        const newNodeId = getNextNodeId();
+        // --- Node ID generation is now handled by createDialogueNode ---
 
         let newNodeType: 'user' | 'npc' | 'custom' | 'input';
         let newNodeLabelPrefix: string;
 
         // Get source node to determine its type
         const sourceNode = reactFlowInstance.getNode(sourceNodeId);
-        
+
         // Determine new node type based on auto mode, current tool, or source node type
         if (currentTool === 'auto') {
           // Auto alternating mode - determine opposite of source node
           if (sourceNode?.type === 'user') {
             newNodeType = 'npc';
             newNodeLabelPrefix = 'NPC Response';
-          } else if (sourceNode?.type === 'npc' || sourceNode?.type === 'input') {
-            newNodeType = 'user';
-            newNodeLabelPrefix = 'User Response';
-          } else {
-            // Default fallback
+          } else { // npc or input
             newNodeType = 'user';
             newNodeLabelPrefix = 'User Response';
           }
@@ -138,42 +137,42 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
         }
 
         // Get raw mouse position and convert to flow position
-        const mousePosition = reactFlowInstance.screenToFlowPosition({ 
-          x: event.clientX, 
-          y: event.clientY 
+        const mousePosition = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY
         });
-        
+
         // Get node dimensions based on node type - adjust these values based on actual rendered sizes
         const nodeWidth = newNodeType === 'npc' || newNodeType === 'user' ? 250 : 180;
-        
+
         // Calculate position so mouse is at center-top of node
         const position = {
           x: mousePosition.x - (nodeWidth / 2),
           y: mousePosition.y
         };
 
-        const newNode: DialogueNodeType = {
-          id: newNodeId,
-          type: newNodeType,
-          position: position,
-          data: { label: `${newNodeLabelPrefix} ${newNodeId}`, text: '' },
-          sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-          targetPosition: isHorizontal ? Position.Left : Position.Top,
-        };
+        // --- Use the createDialogueNode helper from the store ---
+        const newNode = createDialogueNode(
+          newNodeType,
+          newNodeLabelPrefix,
+          position,
+          isHorizontal,
+          selectedNpcId // Pass the selected NPC ID from the sidebar
+        );
 
         const newEdge: DialogueEdge = {
-          id: `e${sourceNodeId}-${newNodeId}-${Date.now()}`, // Ensure unique edge ID
+          id: `e${sourceNodeId}-${newNode.id}-${Date.now()}`, // Ensure unique edge ID using the created node's ID
           source: sourceNodeId,
-          target: newNodeId,
+          target: newNode.id, // Use the ID from the created node
           sourceHandle: sourceHandleId, // Use the handle the connection started from
         };
 
-        console.log(`[DialogueFlow] Creating node ${newNodeId} of type ${newNodeType} at position:`, position);
+        console.log(`[DialogueFlow] Creating node ${newNode.id} of type ${newNodeType} with data:`, newNode.data);
         setNodes((nds) => [...nds, newNode]);
         setEdges((eds) => [...eds, newEdge]);
       }
     },
-    [reactFlowInstance, setNodes, setEdges, isHorizontal, currentTool] // Dependencies for the callback
+    [reactFlowInstance, setNodes, setEdges, isHorizontal, currentTool, selectedNpcId] // Add selectedNpcId dependency
   );
 
   return (
@@ -205,7 +204,7 @@ const DialogueFlow: React.FC<DialogueFlowProps> = memo(({
 
       {/* Start Node Protection Message */}
       {showStartNodeProtection && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-amber-900 text-amber-200 px-4 py-2 rounded-md shadow-md border border-amber-800 z-50 flex items-center"> {/* Adjusted for dark */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-amber-900 text-amber-200 px-4 py-2 rounded-md shadow-md border border-amber-800 z-50 flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>

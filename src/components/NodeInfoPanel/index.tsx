@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Trash2 } from 'lucide-react';
-import { NodeChange } from 'reactflow'; // Import NodeChange type
-import { useNodeInfoPanelData } from '../../store/dialogueStore';
+import { NodeChange } from 'reactflow';
+import { useNodeInfoPanelData } from '../../store/dialogueStore'; // Hook already imports necessary data/actions
 import Input from '../ui/Input';
 import Panel from '../ui/Panel';
 import Select, { SelectOption } from '../ui/Select'; // Import the new Select component
@@ -14,16 +14,19 @@ import MarkdownEditor from '../Markdown/MarkdownEditor';
 const NodeInfoPanel: React.FC = () => {
   const {
     selectedNode: node,
-    onNodesChange, // Get the onNodesChange action
+    onNodesChange,
     updateNodeData,
     updateNodeText,
     updateNodeType,
-    availableNodeTypes // This is an array of strings: ['npc', 'user', 'custom']
+    updateNodeNpcId, // <-- Get the new action
+    availableNodeTypes,
+    npcOptions,    // <-- Get the NPC options for the dropdown
   } = useNodeInfoPanelData();
 
   const [label, setLabel] = useState<string>('');
   const [text, setText] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
+  // --- No local state needed for npcId, it's directly in node.data ---
 
   const prevNodeId = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,6 +37,7 @@ const NodeInfoPanel: React.FC = () => {
       setLabel(node.data.label || '');
       setText(node.data.text || '');
       setSelectedType(node.type || 'custom');
+      // --- No need to set local npcId state ---
       prevNodeId.current = node.id;
     } else if (!node) {
       setLabel('');
@@ -86,7 +90,16 @@ const NodeInfoPanel: React.FC = () => {
     const newType = event.target.value;
     if (node && newType !== selectedType) {
       setSelectedType(newType);
-      updateNodeType(node.id, newType);
+      updateNodeType(node.id, newType); // This action now handles setting default/clearing npcId
+    }
+  };
+
+  // --- NEW: Handle NPC selection change ---
+  const handleNpcChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newNpcId = event.target.value;
+    if (node && node.type === 'npc') {
+      // Use the action from the store hook
+      updateNodeNpcId(node.id, newNpcId || undefined); // Pass undefined if value is empty string (e.g., from placeholder)
     }
   };
 
@@ -122,6 +135,7 @@ const NodeInfoPanel: React.FC = () => {
   return (
     <Panel title="Edit Node" width="18rem" actions={panelActions}> {/* Add actions prop */}
       <div className="space-y-4">
+        {/* --- Node Title Input --- */}
         <Input
           ref={inputRef}
           label="Node Title"
@@ -133,6 +147,7 @@ const NodeInfoPanel: React.FC = () => {
           id={`node-label-${node.id}`}
         />
 
+        {/* --- Node Text Editor --- */}
         <div className="mb-4">
           <label htmlFor={`node-text-${node.id}`} className={typography.label}>Node Text</label>
           <MarkdownEditor
@@ -145,7 +160,7 @@ const NodeInfoPanel: React.FC = () => {
           />
         </div>
 
-        {/* Replace the native select with the new Select component */}
+        {/* --- Node Type Selector --- */}
         <Select
           id={`node-type-${node.id}`}
           label="Node Type"
@@ -153,6 +168,18 @@ const NodeInfoPanel: React.FC = () => {
           onChange={handleTypeChange}
           options={nodeTypeOptions}
         />
+
+        {/* --- CONDITIONAL NPC Selector --- */}
+        {node.type === 'npc' && (
+          <Select
+            id={`node-npc-${node.id}`}
+            label="Associated NPC"
+            value={node.data.npcId || ''} // Use npcId from node data, default to empty string if unset
+            onChange={handleNpcChange}
+            options={npcOptions} // Use the options fetched from the store hook
+            placeholder="Select NPC..." // Add a placeholder
+          />
+        )}
 
       </div>
     </Panel>
