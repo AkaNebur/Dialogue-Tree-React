@@ -23,11 +23,14 @@
     "postcss": "^8.4.35",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4",
+    "remark-gfm": "^4.0.1",
     "tailwindcss": "^3.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/dagre": "^0.7.52",
     "@types/lodash": "^4.17.16",
     "@types/node": "^22.14.0",

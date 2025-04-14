@@ -1,5 +1,6 @@
 // src/components/CardSidebar/index.tsx
 import React, { useState, ReactNode, CSSProperties } from 'react';
+// Map icon is used for the Changelog/Roadmap button
 import { Plus, Settings, User, Info, Map, Edit, Database, X } from 'lucide-react';
 import { useSidebarData } from '../../store/dialogueStore';
 import { NPC, Conversation } from '../../types';
@@ -33,15 +34,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 
-interface CardSidebarProps {
-  onOpenInfoModal: () => void;
-  onOpenEditModal: (type: 'NPC' | 'Dialogue', id: string, name: string, image?: string, accentColor?: string) => void;
-  isDataManagementVisible?: boolean;
-  onToggleDataManagement?: () => void;
-  headerButtons?: ReactNode;
-  betweenHeaderAndContent?: ReactNode;
-}
-
 // --- Sortable NPC Item Component ---
 interface SortableNpcItemProps {
   npc: NPC;
@@ -64,7 +56,7 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
     listeners,
     setNodeRef,
     transform,
-    transition, // We get this from the hook, but won't use it for animation
+    // transition, // We get this from the hook, but won't use it for animation
     isDragging: hookIsDragging,
   } = useSortable({ id: npc.id });
 
@@ -78,10 +70,7 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
 
   const style: CSSProperties = {
     transform: combinedTransform, // Use the correctly combined transform
-    // --- CHANGE HERE ---
-    // Always set transition to 'none' to prevent the snap animation
-    transition: 'none',
-    // -------------------
+    transition: 'none', // Always set transition to 'none' to prevent snap animation
     opacity: hookIsDragging && !isOverlay ? 0 : 1, // Hide original item when it's the drag source
     zIndex: showLiftedStyle ? 10 : 'auto',
     position: 'relative',
@@ -89,7 +78,6 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
     cursor: showLiftedStyle ? 'grabbing' : 'default',
   };
 
-  // ... rest of the SortableNpcItem component remains the same
   const accentColor = npc.accentColor;
   const useAccentStyle = isSelected && accentColor;
 
@@ -153,7 +141,7 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
         {npc.name}
       </button>
 
-      {/* Avatar (unchanged) */}
+      {/* Avatar */}
       <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden bg-gray-700 border border-gray-700 flex items-center justify-center pointer-events-none">
         {npc.image ? (
           <img src={npc.image} alt={npc.name} className="w-full h-full object-cover relative z-10" />
@@ -164,7 +152,7 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
         )}
       </div>
 
-      {/* Action Buttons (unchanged) */}
+      {/* Action Buttons */}
       <div className={cardItemStyles.actions.container} style={{ opacity: isOverlay ? 0 : 1 }}>
         <button
           className={cardItemStyles.actions.button + ' ' + cardItemStyles.actions.edit}
@@ -209,7 +197,7 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
     listeners,
     setNodeRef,
     transform,
-    transition, // We get this from the hook, but won't use it for animation
+    // transition, // We get this from the hook, but won't use it for animation
     isDragging: hookIsDragging,
   } = useSortable({ id: conv.id });
 
@@ -223,10 +211,7 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
 
   const style: CSSProperties = {
     transform: combinedTransform, // Use the correctly combined transform
-    // --- CHANGE HERE ---
-    // Always set transition to 'none' to prevent the snap animation
-    transition: 'none',
-    // -------------------
+    transition: 'none', // Always set transition to 'none' to prevent snap animation
     opacity: hookIsDragging && !isOverlay ? 0 : 1, // Hide original item when it's the drag source
     zIndex: showLiftedStyle ? 10 : 'auto',
     position: 'relative',
@@ -234,7 +219,6 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
     cursor: showLiftedStyle ? 'grabbing' : 'default',
   };
 
-  // ... rest of the SortableDialogueItem component remains the same
   const useAccentStyle = isSelected && npcAccentColor;
 
   const itemStyles: React.CSSProperties = {};
@@ -296,7 +280,7 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
         {conv.name}
       </button>
 
-      {/* Action Buttons (unchanged) */}
+      {/* Action Buttons */}
       <div className={cardItemStyles.actions.container} style={{ opacity: isOverlay ? 0 : 1 }}>
         <button
           className={cardItemStyles.actions.button + ' ' + cardItemStyles.actions.edit}
@@ -318,9 +302,19 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
 
 
 // --- Main CardSidebar Component ---
-// No changes needed here
+interface CardSidebarProps {
+  onOpenInfoModal: () => void;
+  onOpenChangelogModal: () => void; // <-- Prop added
+  onOpenEditModal: (type: 'NPC' | 'Dialogue', id: string, name: string, image?: string, accentColor?: string) => void;
+  isDataManagementVisible?: boolean;
+  onToggleDataManagement?: () => void;
+  headerButtons?: ReactNode;
+  betweenHeaderAndContent?: ReactNode;
+}
+
 const CardSidebar: React.FC<CardSidebarProps> = ({
   onOpenInfoModal,
+  onOpenChangelogModal, // <-- Destructure prop
   onOpenEditModal,
   isDataManagementVisible = false,
   onToggleDataManagement,
@@ -449,8 +443,7 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                     icon={<Settings size={18} />}
                     label="Options (Not Implemented)"
                     variant="original"
-                    // onClick={() => console.log("Options clicked")} // Example action
-                    disabled // Disable if not implemented
+                    disabled
                 />
                  <IconButton
                     icon={<Info size={18} />}
@@ -458,18 +451,14 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                     label="Info & Shortcuts"
                     variant="original"
                  />
-                 <a
-                    href="https://www.notion.so/rubengalandiaz/dialogue-tree-roadmap-b85e3034f900411d8330164e410af11e" // Updated link if necessary
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block"
-                 >
-                    <IconButton
-                        icon={<Map size={18} />}
-                        label="Roadmap & Info"
-                        variant="original"
-                    />
-                 </a>
+                 {/* --- MODIFIED: Roadmap/Info Button --- */}
+                 <IconButton
+                     icon={<Map size={18} />}
+                     label="Changelog & Roadmap" // Updated label
+                     variant="original"
+                     onClick={onOpenChangelogModal} // Use the new handler
+                 />
+                 {/* --- END MODIFICATION --- */}
 
                  {/* Data Management Button */}
                  {onToggleDataManagement && (
@@ -544,7 +533,7 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                                     isSelected={npc.id === selectedNpcId}
                                     onSelect={selectNpc}
                                     onEdit={handleEditNpc}
-                                    isDragging={activeId === npc.id} // Pass if this specific item is dragging
+                                    isDragging={activeId === npc.id}
                                 />
                             ))}
                             {npcs.length === 0 && !isAddingNpc && emptyStateContent("No NPCs created yet. Click & hold items to reorder.")}
@@ -611,7 +600,7 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                                             npcAccentColor={selectedNpcData.accentColor}
                                             onSelect={selectConversation}
                                             onEdit={handleEditConversation}
-                                            isDragging={activeId === conv.id} // Pass if this specific item is dragging
+                                            isDragging={activeId === conv.id}
                                         />
                                     ))}
                                     {(selectedNpcData.conversations || []).length === 0 && !isAddingConversation &&
@@ -628,7 +617,7 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
             </div>
         </div>
 
-        {/* Drag Overlay - dropAnimation is already null, which is correct */}
+        {/* Drag Overlay */}
         <DragOverlay dropAnimation={null}>
             {activeId ? (
                 activeNpc ? (
@@ -637,8 +626,8 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                         isSelected={activeNpc.id === selectedNpcId}
                         onSelect={() => {}}
                         onEdit={() => {}}
-                        isDragging={true}    // It is being dragged
-                        isOverlay={true}     // It's the overlay render
+                        isDragging={true}
+                        isOverlay={true}
                     />
                 ) : activeConv ? (
                     <SortableDialogueItem
@@ -647,8 +636,8 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                         npcAccentColor={selectedNpcData?.accentColor}
                         onSelect={() => {}}
                         onEdit={() => {}}
-                        isDragging={true}    // It is being dragged
-                        isOverlay={true}     // It's the overlay render
+                        isDragging={true}
+                        isOverlay={true}
                     />
                 ) : null
             ) : null}

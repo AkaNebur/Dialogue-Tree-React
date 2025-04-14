@@ -3,6 +3,8 @@ import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import { ArrowDown, ArrowRight, GitFork } from 'lucide-react';
 
+// We'll fetch the changelog content at runtime instead of importing it
+
 import useNpcLayoutToggle from './hooks/useNpcLayoutToggle';
 
 import DialogueFlow from './components/DialogueFlow';
@@ -13,6 +15,7 @@ import DataActions from './components/DataActions';
 import Toolbar, { ToolType } from './components/Toolbar';
 import EditModal from './components/EditModal';
 import InfoModal from './components/InfoModal';
+import ChangelogModal from './components/ChangelogModal'; // <-- Import the new modal
 import NodeInfoPanel from './components/NodeInfoPanel';
 
 import {
@@ -31,6 +34,10 @@ interface EditModalState {
   currentImage?: string;
   currentAccentColor?: string;
 }
+
+// Define the roadmap URL constant
+const ROADMAP_URL = "https://www.notion.so/rubengalandiaz/dialogue-tree-roadmap";
+
 
 const App: React.FC = () => {
   const fitViewRef = useRef<(() => void) | null>(null);
@@ -56,6 +63,8 @@ const App: React.FC = () => {
   const [, setPositioningMode] = useState<PositioningMode>('dagre');
   const [layoutOptions, setLayoutOptions] = useState({ spacing: 150 });
   const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
+  const [isChangelogModalOpen, setIsChangelogModalOpen] = useState<boolean>(false); // <-- State for new modal
+  const [changelogContent, setChangelogContent] = useState<string>(''); // Initialize empty, will be filled by fetch
   const [editModalState, setEditModalState] = useState<EditModalState>({
     isOpen: false, entityType: 'NPC', entityId: '', currentName: '', currentImage: undefined, currentAccentColor: undefined,
   });
@@ -77,6 +86,24 @@ const App: React.FC = () => {
       if (!isLayoutOptionsOpen) setIsDataManagementVisible(false);
   }, [isLayoutOptionsOpen]);
 
+  // Fetch the changelog content when the component mounts
+  useEffect(() => {
+    fetch('/CHANGELOG.md')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch changelog');
+        }
+        return response.text();
+      })
+      .then(data => {
+        setChangelogContent(data);
+      })
+      .catch(error => {
+        console.error('Error fetching changelog:', error);
+        setChangelogContent('*Error loading changelog content*');
+      });
+  }, []);
+
   const handleDataImported = useCallback(() => {
     loadInitialData();
   }, [loadInitialData]);
@@ -92,6 +119,11 @@ const App: React.FC = () => {
 
   const handleOpenInfoModal = useCallback(() => { setIsInfoModalOpen(true); }, []);
   const handleCloseInfoModal = useCallback(() => { setIsInfoModalOpen(false); }, []);
+
+  // --- Callbacks for Changelog Modal ---
+  const handleOpenChangelogModal = useCallback(() => { setIsChangelogModalOpen(true); }, []);
+  const handleCloseChangelogModal = useCallback(() => { setIsChangelogModalOpen(false); }, []);
+  // --- End Callbacks for Changelog Modal ---
 
   const handleOpenEditModal = useCallback((type: 'NPC' | 'Dialogue', id: string, name: string, image?: string, accentColor?: string) => {
       setEditModalState({ isOpen: true, entityType: type, entityId: id, currentName: name, currentImage: image, currentAccentColor: accentColor });
@@ -178,153 +210,148 @@ const App: React.FC = () => {
 
   return (
     <div className="w-screen h-screen relative overflow-hidden border-0 dark">
-      {isLoading && (
-         <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-[100]">
-            <div className="flex flex-col items-center">
-                <div className="animate-spin h-8 w-8 border-4 border-gray-400 border-t-transparent rounded-full mb-3"></div>
-                <p className="text-white text-lg font-medium">Loading Dialogue Data...</p>
-            </div>
-         </div>
-      )}
+      {/* ... (isLoading indicator, Toolbar, ReactFlowProvider) ... */}
+       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30">
+         <Toolbar
+             activeTool={currentTool}
+             onToolChange={handleToolChange}
+         />
+       </div>
 
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30">
-        <Toolbar
-            activeTool={currentTool}
-            onToolChange={handleToolChange}
-        />
-      </div>
-
-      <div className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        {!isLoading && (
-          <ReactFlowProvider>
-              <DialogueFlow
-                isHorizontal={isHorizontal}
-                onFitViewInitialized={handleFitViewInitialized}
-                currentTool={currentTool}
-              />
-          </ReactFlowProvider>
-        )}
-      </div>
-
-      <div className="absolute top-4 right-4 z-30 flex flex-col space-y-3 items-end">
-        <Header
-          onToggleLayoutOptions={toggleLayoutOptions}
-        />
-
-         {isLayoutOptionsOpen && (
-            <>
-              <div className="w-64 bg-[var(--color-surface)] rounded-2xl shadow-lg overflow-hidden z-50 border-2 border-[var(--color-border)] transition-colors duration-300">
-                  <div className="p-4 border-b border-[var(--color-border)]">
-                    <h3 className="text-md font-semibold text-[var(--color-text)]">
-                      Layout Options for NPC
-                    </h3>
-                    {selectedNpc ? (
-                      <p className="text-sm text-gray-300 mt-1">
-                        {selectedNpc.name}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-gray-400 italic mt-1">
-                        No NPC selected
-                      </p>
-                    )}
-                  </div>
-
-                  {selectedNpc ? (
-                    <>
-                      <div className="p-4 border-b border-[var(--color-border)]">
-                        <h4 className="text-xs font-medium text-gray-400 mb-2 uppercase">
-                          Direction
-                        </h4>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleSetDirection(true)}
-                            className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm transition-colors ${
-                              isHorizontal
-                                ? 'bg-gray-900 text-gray-200 font-medium ring-1 ring-gray-700' 
-                                : 'bg-[var(--color-bg)] text-[var(--color-text)] hover:bg-gray-800'
-                            }`}
-                            disabled={!selectedNpc}
-                          >
-                            <ArrowRight size={16} />
-                            <span>Horizontal</span>
-                          </button>
-                          <button
-                            onClick={() => handleSetDirection(false)}
-                            className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm transition-colors ${
-                              !isHorizontal
-                                ? 'bg-gray-900 text-gray-200 font-medium ring-1 ring-gray-700'
-                                : 'bg-[var(--color-bg)] text-[var(--color-text)] hover:bg-gray-800'
-                            }`}
-                            disabled={!selectedNpc}
-                          >
-                            <ArrowDown size={16} />
-                            <span>Vertical</span>
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-2">
-                          Each NPC maintains its own layout preference.
-                        </p>
-                      </div>
-
-                      <div className="p-4 border-b border-[var(--color-border)]">
-                        <button
-                          onClick={applyLayoutAndClose}
-                          className="w-full py-3 px-4 flex items-center gap-2
-                                  bg-yellow-900/30 hover:bg-yellow-900/50 text-yellow-200
-                                  rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-1 focus:ring-offset-[var(--color-surface)]"
-                          title="Automatically arrange nodes using Dagre algorithm"
-                          disabled={!selectedNpc}
-                        >
-                          <GitFork size={18} />
-                          <div className="text-left">
-                            <div className="font-medium">Smart Layout</div>
-                            <div className="text-xs text-yellow-300">Apply automatic layout</div>
-                          </div>
-                        </button>
-                      </div>
-
-                      <div className="p-4">
-                        <label htmlFor='node-spacing-range' className="block text-xs font-medium text-gray-400 mb-2 uppercase">
-                          Node Spacing
-                        </label>
-                        <div className="flex items-center">
-                          <input
-                            id='node-spacing-range'
-                            type="range"
-                            min="50"
-                            max="300"
-                            step="10"
-                            value={layoutOptions.spacing}
-                            onChange={(e) => setLayoutOptions({ spacing: Number(e.target.value) })}
-                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 focus:ring-offset-[var(--color-surface)]"
-                            disabled={!selectedNpc}
-                          />
-                          <span className="ml-3 text-xs text-gray-400 w-8 text-right">{layoutOptions.spacing}px</span>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="p-4 text-center">
-                      <div className="text-sm text-gray-400">
-                        Please select an NPC to customize its layout options.
-                      </div>
-                    </div>
-                  )}
-              </div>
-
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setIsLayoutOptionsOpen(false)}
-              />
-            </>
+       <div className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+         {!isLoading && (
+           <ReactFlowProvider>
+               <DialogueFlow
+                 isHorizontal={isHorizontal}
+                 onFitViewInitialized={handleFitViewInitialized}
+                 currentTool={currentTool}
+               />
+           </ReactFlowProvider>
          )}
+       </div>
 
-         <NodeInfoPanel />
-      </div>
+       {/* ... (Header, Layout Options Panel, NodeInfoPanel) ... */}
+        <div className="absolute top-4 right-4 z-30 flex flex-col space-y-3 items-end">
+         <Header
+           onToggleLayoutOptions={toggleLayoutOptions}
+         />
+
+          {isLayoutOptionsOpen && (
+             <>
+               <div className="w-64 bg-[var(--color-surface)] rounded-2xl shadow-lg overflow-hidden z-50 border-2 border-[var(--color-border)] transition-colors duration-300">
+                   {/* ... Layout options content ... */}
+                     <div className="p-4 border-b border-[var(--color-border)]">
+                       <h3 className="text-md font-semibold text-[var(--color-text)]">
+                         Layout Options for NPC
+                       </h3>
+                       {selectedNpc ? (
+                         <p className="text-sm text-gray-300 mt-1">
+                           {selectedNpc.name}
+                         </p>
+                       ) : (
+                         <p className="text-sm text-gray-400 italic mt-1">
+                           No NPC selected
+                         </p>
+                       )}
+                     </div>
+
+                     {selectedNpc ? (
+                       <>
+                         <div className="p-4 border-b border-[var(--color-border)]">
+                           <h4 className="text-xs font-medium text-gray-400 mb-2 uppercase">
+                             Direction
+                           </h4>
+                           <div className="flex gap-2">
+                             <button
+                               onClick={() => handleSetDirection(true)}
+                               className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm transition-colors ${
+                                 isHorizontal
+                                   ? 'bg-gray-900 text-gray-200 font-medium ring-1 ring-gray-700'
+                                   : 'bg-[var(--color-bg)] text-[var(--color-text)] hover:bg-gray-800'
+                               }`}
+                               disabled={!selectedNpc}
+                             >
+                               <ArrowRight size={16} />
+                               <span>Horizontal</span>
+                             </button>
+                             <button
+                               onClick={() => handleSetDirection(false)}
+                               className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm transition-colors ${
+                                 !isHorizontal
+                                   ? 'bg-gray-900 text-gray-200 font-medium ring-1 ring-gray-700'
+                                   : 'bg-[var(--color-bg)] text-[var(--color-text)] hover:bg-gray-800'
+                               }`}
+                               disabled={!selectedNpc}
+                             >
+                               <ArrowDown size={16} />
+                               <span>Vertical</span>
+                             </button>
+                           </div>
+                           <p className="text-xs text-gray-400 mt-2">
+                             Each NPC maintains its own layout preference.
+                           </p>
+                         </div>
+
+                         <div className="p-4 border-b border-[var(--color-border)]">
+                           <button
+                             onClick={applyLayoutAndClose}
+                             className="w-full py-3 px-4 flex items-center gap-2
+                                     bg-yellow-900/30 hover:bg-yellow-900/50 text-yellow-200
+                                     rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-1 focus:ring-offset-[var(--color-surface)]"
+                             title="Automatically arrange nodes using Dagre algorithm"
+                             disabled={!selectedNpc}
+                           >
+                             <GitFork size={18} />
+                             <div className="text-left">
+                               <div className="font-medium">Smart Layout</div>
+                               <div className="text-xs text-yellow-300">Apply automatic layout</div>
+                             </div>
+                           </button>
+                         </div>
+
+                         <div className="p-4">
+                           <label htmlFor='node-spacing-range' className="block text-xs font-medium text-gray-400 mb-2 uppercase">
+                             Node Spacing
+                           </label>
+                           <div className="flex items-center">
+                             <input
+                               id='node-spacing-range'
+                               type="range"
+                               min="50"
+                               max="300"
+                               step="10"
+                               value={layoutOptions.spacing}
+                               onChange={(e) => setLayoutOptions({ spacing: Number(e.target.value) })}
+                               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 focus:ring-offset-[var(--color-surface)]"
+                               disabled={!selectedNpc}
+                             />
+                             <span className="ml-3 text-xs text-gray-400 w-8 text-right">{layoutOptions.spacing}px</span>
+                           </div>
+                         </div>
+                       </>
+                     ) : (
+                       <div className="p-4 text-center">
+                         <div className="text-sm text-gray-400">
+                           Please select an NPC to customize its layout options.
+                         </div>
+                       </div>
+                     )}
+               </div>
+
+               <div
+                 className="fixed inset-0 z-40"
+                 onClick={() => setIsLayoutOptionsOpen(false)}
+               />
+             </>
+          )}
+
+          <NodeInfoPanel />
+       </div>
 
       <div className="absolute top-4 left-4 z-20">
          <CardSidebar
             onOpenInfoModal={handleOpenInfoModal}
+            onOpenChangelogModal={handleOpenChangelogModal} // <-- Pass new prop
             onOpenEditModal={handleOpenEditModal}
             isDataManagementVisible={isDataManagementVisible}
             onToggleDataManagement={toggleDataManagement}
@@ -338,9 +365,16 @@ const App: React.FC = () => {
 
       <AutoSaveIndicator />
 
+      {/* Render Modals */}
       <InfoModal
         isOpen={isInfoModalOpen}
         onClose={handleCloseInfoModal}
+      />
+      <ChangelogModal // <-- Render the new modal
+        isOpen={isChangelogModalOpen}
+        onClose={handleCloseChangelogModal}
+        changelogContent={changelogContent}
+        roadmapUrl={ROADMAP_URL}
       />
       <EditModal
         isOpen={editModalState.isOpen}
