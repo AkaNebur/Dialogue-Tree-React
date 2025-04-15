@@ -1,3 +1,17 @@
+## [2025-04-15] - Modal Fix & Node Handle Style
+
+### 🐛 Fixes
+
+*   **Modal Sizing:** Resolved an issue causing incorrect modal sizing in certain situations.
+
+### 🎨 Style
+
+*   **Incoming Node Handle:** Hid the incoming connection handle on nodes for a cleaner visual appearance.
+*   **Help Modal Hover:** Improved contrast for hovered items in the Help modal.
+
+
+
+
 ## [2025-04-14] - Node Placement Fix & NPC Node Editing
 
 ### ✨ Features

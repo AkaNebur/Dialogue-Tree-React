@@ -6,7 +6,6 @@ import {
   MousePointer2, ZoomIn, ZoomOut, Maximize2, Trash2, GitFork, Move, Spline, Plus, Command, ArrowBigUp
 } from 'lucide-react';
 
-// Styled components for info modal sections
 interface SectionProps {
   title: string;
   icon?: React.ReactNode;
@@ -29,7 +28,8 @@ interface ShortcutProps {
 }
 
 const Shortcut: React.FC<ShortcutProps> = ({ icon, action, description }) => (
-  <div className="flex items-start gap-3 p-2 rounded-md hover:bg-gray-100 hover:bg-[var(--color-bg)] transition-colors">
+  // Changed hover background for better contrast
+  <div className="flex items-start gap-3 p-2 rounded-md hover:bg-gray-800 transition-colors">
     <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center mt-0.5 text-gray-400">
       {icon}
     </div>
