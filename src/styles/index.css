@@ -150,6 +150,17 @@
         border-color: var(--color-accent-reactflow) !important;
     }
 
+    .character-node .react-flow__handle[data-handlepos="left"] {
+        opacity: 0;
+  pointer-events: none;
+    }
+
+    .character-node .react-flow__handle[data-handlepos="top"] {
+        opacity: 0;
+  pointer-events: none;
+    }
+
+
     .react-flow__handle {
         width: var(--xy-handle-size) !important; height: var(--xy-handle-size) !important;
         border-radius: var(--xy-handle-border-radius) !important;
