@@ -42,7 +42,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
       onClose={onClose}
       title="Changelog & Roadmap Info"
       footer={modalFooter}
-      maxWidth="2xl" // Adjust size as needed
+      maxWidth="5xl" // Adjust size as needed
       {...modalProps}
     >
       {/* Remove prose classes from here, they are now inside MarkdownRenderer */}

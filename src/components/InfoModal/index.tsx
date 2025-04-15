@@ -57,7 +57,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
       isOpen={isOpen}
       onClose={onClose}
       title="Help & Shortcuts"
-      maxWidth="3xl"
+      maxWidth="2xl"
     >
       <div className="space-y-5">
         <Section title="Canvas Navigation" icon={<Move size={18} />}>
