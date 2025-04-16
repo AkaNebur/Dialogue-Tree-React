@@ -1,3 +1,15 @@
+## [2025-04-17] - Jump Node & UI Improvements
+
+### ✨ Features
+
+*   **Jump Node Implementation:** Added Jump Node with target dialogue selection directly in the edit panel, allowing users to easily create connections between different conversations.
+
+### 🐛 Fixes
+
+*   **Form Content:** Added missing form content for adding NPCs and Dialogues in the sidebar, improving the user experience when creating new elements.
+*   **Markdown Editor:** Implemented toggle-aware formatting buttons to prevent markup spam, making the editor more intuitive when adding or removing formatting.
+*   **Drag and Drop:** Improved the smoothness of drag and drop animations in the sidebar for better visual feedback during reordering.
+
 ## [2025-04-15] - Modal Fix & Node Handle Style
 
 ### 🐛 Fixes
@@ -8,9 +20,6 @@
 
 *   **Incoming Node Handle:** Hid the incoming connection handle on nodes for a cleaner visual appearance.
 *   **Help Modal Hover:** Improved contrast for hovered items in the Help modal.
-
-
-
 
 ## [2025-04-14] - Node Placement Fix & NPC Node Editing
 
