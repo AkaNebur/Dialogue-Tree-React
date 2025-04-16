@@ -22,6 +22,8 @@ export interface DialogueNodeData {
   className?: string;
   text?: string; // Body content
   npcId?: string; // ID of the associated NPC for 'npc' type nodes
+  targetNpcId?: string; // ID of the NPC owning the target conversation for 'jump' nodes
+  targetConversationId?: string; // ID of the target conversation for 'jump' nodes
 }
 
 export type DialogueNode = Node<DialogueNodeData>;

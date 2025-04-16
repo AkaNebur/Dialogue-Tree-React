@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Trash2 } from 'lucide-react';
 import { NodeChange } from 'reactflow';
-import { useNodeInfoPanelData } from '../../store/dialogueStore'; // Hook already imports necessary data/actions
+import { useNodeInfoPanelData } from '../../store/dialogueStore';
 import Input from '../ui/Input';
 import Panel from '../ui/Panel';
-import Select, { SelectOption } from '../ui/Select'; // Import the new Select component
-import IconButton from '../ui/IconButton'; // Import IconButton
+import Select, { SelectOption } from '../ui/Select';
+import IconButton from '../ui/IconButton';
 import { typography } from '../../styles/commonStyles';
 import MarkdownEditor from '../Markdown/MarkdownEditor';
 
@@ -18,28 +18,30 @@ const NodeInfoPanel: React.FC = () => {
     updateNodeData,
     updateNodeText,
     updateNodeType,
-    updateNodeNpcId, // <-- Get the new action
+    updateNodeNpcId,
+    updateNodeTargetConversation, // Action for jump node target
     availableNodeTypes,
-    npcOptions,    // <-- Get the NPC options for the dropdown
+    npcOptions,
+    allConversationsForDropdown, // Selector for jump node target dropdown
   } = useNodeInfoPanelData();
 
   const [label, setLabel] = useState<string>('');
   const [text, setText] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
-  // --- No local state needed for npcId, it's directly in node.data ---
 
   const prevNodeId = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Sync local state with selected node from global store
   useEffect(() => {
     if (node && node.id !== prevNodeId.current) {
       setLabel(node.data.label || '');
       setText(node.data.text || '');
       setSelectedType(node.type || 'custom');
-      // --- No need to set local npcId state ---
       prevNodeId.current = node.id;
     } else if (!node) {
+      // Reset local state if no node is selected
       setLabel('');
       setText('');
       setSelectedType('');
@@ -55,19 +57,15 @@ const NodeInfoPanel: React.FC = () => {
 
   const handleTextChange = (newText: string) => {
     setText(newText);
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
-      if (node) {
-        updateNodeText(node.id, newText);
-      }
-    }, 50);
+      if (node) updateNodeText(node.id, newText);
+    }, 50); // Short debounce for text input
   };
 
   const handleTextBlur = () => {
+    // Ensure latest text is saved on blur, clearing any pending debounce
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     if (node && text !== (node.data.text || '')) {
       updateNodeText(node.id, text);
     }
@@ -81,7 +79,7 @@ const NodeInfoPanel: React.FC = () => {
       }
       inputRef.current?.blur();
     } else if (event.key === 'Escape') {
-      setLabel(node.data.label || ''); // Reset to original on escape
+      setLabel(node.data.label || ''); // Reset on escape
       inputRef.current?.blur();
     }
   };
@@ -90,24 +88,39 @@ const NodeInfoPanel: React.FC = () => {
     const newType = event.target.value;
     if (node && newType !== selectedType) {
       setSelectedType(newType);
-      updateNodeType(node.id, newType); // This action now handles setting default/clearing npcId
+      updateNodeType(node.id, newType); // Update type in store
     }
   };
 
-  // --- NEW: Handle NPC selection change ---
   const handleNpcChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newNpcId = event.target.value;
     if (node && node.type === 'npc') {
-      // Use the action from the store hook
-      updateNodeNpcId(node.id, newNpcId || undefined); // Pass undefined if value is empty string (e.g., from placeholder)
+      updateNodeNpcId(node.id, newNpcId || undefined); // Pass undefined if placeholder selected
     }
   };
 
+  const handleJumpTargetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = event.target.value;
+    if (node && node.type === 'jump') {
+      if (selectedValue) {
+        const [targetNpcId, targetConversationId] = selectedValue.split('|');
+        if (targetNpcId && targetConversationId) {
+          updateNodeTargetConversation(node.id, targetNpcId, targetConversationId);
+        } else {
+           console.error("Invalid jump target value selected:", selectedValue);
+           updateNodeTargetConversation(node.id, undefined, undefined); // Clear if invalid
+        }
+      } else {
+        // Clear the target if the placeholder is selected
+        updateNodeTargetConversation(node.id, undefined, undefined);
+      }
+    }
+  };
+
+  // Cleanup debounce timer on unmount
   useEffect(() => {
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, []);
 
@@ -115,27 +128,32 @@ const NodeInfoPanel: React.FC = () => {
     if (node && node.type !== 'input' && onNodesChange) {
       const deleteChange: NodeChange = { type: 'remove', id: node.id };
       onNodesChange([deleteChange]);
-      // The panel will disappear automatically as the node is no longer selected
     }
   }, [node, onNodesChange]);
 
+  // Prepare options for the type dropdown
   const nodeTypeOptions: SelectOption[] = availableNodeTypes.map(type => ({
     value: type,
-    label: type.charAt(0).toUpperCase() + type.slice(1) // Capitalize (e.g., 'Npc', 'User')
+    label: type.charAt(0).toUpperCase() + type.slice(1) // Capitalize type name
   }));
 
-  // Do not render the panel if no node is selected or if it's the input node
+  // Don't render if no node selected or if it's the non-editable input node
   if (!node || node.type === 'input') {
     return null;
   }
 
-  // Define the delete button for the panel actions
+  // Prepare the delete action button for the panel header
   const panelActions = <IconButton icon={<Trash2 size={16} />} label="Delete Node" onClick={handleDeleteNode} variant="danger" />;
 
+  // Determine the current value for the jump target dropdown
+  const jumpTargetValue = node.type === 'jump' && node.data.targetNpcId && node.data.targetConversationId
+    ? `${node.data.targetNpcId}|${node.data.targetConversationId}`
+    : '';
+
   return (
-    <Panel title="Edit Node" width="18rem" actions={panelActions}> {/* Add actions prop */}
+    <Panel title="Edit Node" width="18rem" actions={panelActions}>
       <div className="space-y-4">
-        {/* --- Node Title Input --- */}
+        {/* Node Title Input */}
         <Input
           ref={inputRef}
           label="Node Title"
@@ -147,20 +165,22 @@ const NodeInfoPanel: React.FC = () => {
           id={`node-label-${node.id}`}
         />
 
-        {/* --- Node Text Editor --- */}
-        <div className="mb-4">
-          <label htmlFor={`node-text-${node.id}`} className={typography.label}>Node Text</label>
-          <MarkdownEditor
-            id={`node-text-${node.id}`}
-            initialValue={text}
-            onChange={handleTextChange}
-            onBlur={handleTextBlur}
-            placeholder="Enter text with markdown formatting..."
-            rows={5}
-          />
-        </div>
+        {/* Node Text Editor (Hidden for jump nodes) */}
+        {node.type !== 'jump' && (
+            <div className="mb-4">
+              <label htmlFor={`node-text-${node.id}`} className={typography.label}>Node Text</label>
+              <MarkdownEditor
+                id={`node-text-${node.id}`}
+                initialValue={text}
+                onChange={handleTextChange}
+                onBlur={handleTextBlur}
+                placeholder="Enter text with markdown formatting..."
+                rows={5}
+              />
+            </div>
+        )}
 
-        {/* --- Node Type Selector --- */}
+        {/* Node Type Selector */}
         <Select
           id={`node-type-${node.id}`}
           label="Node Type"
@@ -169,18 +189,29 @@ const NodeInfoPanel: React.FC = () => {
           options={nodeTypeOptions}
         />
 
-        {/* --- CONDITIONAL NPC Selector --- */}
+        {/* Conditional NPC Selector */}
         {node.type === 'npc' && (
           <Select
             id={`node-npc-${node.id}`}
             label="Associated NPC"
-            value={node.data.npcId || ''} // Use npcId from node data, default to empty string if unset
+            value={node.data.npcId || ''}
             onChange={handleNpcChange}
-            options={npcOptions} // Use the options fetched from the store hook
-            placeholder="Select NPC..." // Add a placeholder
+            options={npcOptions}
+            placeholder="Select NPC..."
           />
         )}
 
+        {/* Conditional Jump Target Selector */}
+        {node.type === 'jump' && (
+          <Select
+            id={`node-jump-target-${node.id}`}
+            label="Jump Target Dialogue"
+            value={jumpTargetValue}
+            onChange={handleJumpTargetChange}
+            options={allConversationsForDropdown}
+            placeholder="Select Target Dialogue..."
+          />
+        )}
       </div>
     </Panel>
   );

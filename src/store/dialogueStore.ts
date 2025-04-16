@@ -13,8 +13,8 @@ import {
   Node,
 } from 'reactflow';
 import { debounce } from 'lodash';
-// Import arrayMove utility
 import { arrayMove } from '@dnd-kit/sortable';
+import { SelectOption } from '../components/ui/Select'; // Import SelectOption type
 import {
   initialNpcs,
   createInitialConversationData,
@@ -22,7 +22,7 @@ import {
   DEFAULT_EMPTY_EDGES,
   DEFAULT_NPC_ACCENT_COLOR,
   DEFAULT_NPC_LAYOUT_HORIZONTAL,
-  getNextNodeId, // <-- Import getNextNodeId
+  getNextNodeId,
 } from '../constants/initialData';
 import {
   DialogueNode,
@@ -32,6 +32,7 @@ import {
 } from '../types';
 import { loadAllNpcs, saveAllNpcs } from '../services/dialogueService';
 import IdManager from '../utils/IdManager';
+// Note: Icon import removed as it's not directly used in the store logic itself
 
 interface DialogueState {
   npcs: NPC[];
@@ -50,7 +51,8 @@ interface DialogueState {
   selectedNodes: () => DialogueNode[];
   getSelectedNodeInfo: () => DialogueNode | null;
   getNodeTypes: () => string[];
-  getNpcListForDropdown: () => { value: string; label: string }[]; // New selector for dropdown
+  getNpcListForDropdown: () => SelectOption[];
+  getAllConversationsForDropdown: () => SelectOption[]; // Selector for jump node target
 
   // Actions
   loadInitialData: () => Promise<void>;
@@ -84,7 +86,9 @@ interface DialogueState {
   updateNodeData: (nodeId: string, newLabel: string) => void;
   updateNodeText: (nodeId: string, newText: string) => void;
   updateNodeType: (nodeId: string, newType: string) => void;
-  updateNodeNpcId: (nodeId: string, npcId: string | undefined) => void; // New action
+  updateNodeNpcId: (nodeId: string, npcId: string | undefined) => void;
+  updateNodeTargetConversation: (nodeId: string, targetNpcId: string | undefined, targetConversationId: string | undefined) => void; // Action for jump node target
+  jumpToConversation: (targetNpcId: string, targetConversationId: string) => void; // Action to perform the jump
 }
 
 let debouncedSave: ReturnType<typeof debounce<() => Promise<void>>> | null = null;
@@ -136,7 +140,6 @@ export const useDialogueStore = create(
         return { npcIndex, convIndex };
     };
 
-    // --- Helper function within store to get current conversation ---
     const getCurrentConversation = (draft: DialogueState): Conversation | undefined => {
       const { npcIndex, convIndex } = findIndices(draft);
       if (npcIndex === -1 || convIndex === -1) return undefined;
@@ -144,7 +147,7 @@ export const useDialogueStore = create(
     };
 
     return {
-      // --- State ---
+      // State
       npcs: [],
       selectedNpcId: null,
       selectedConversationId: null,
@@ -153,7 +156,7 @@ export const useDialogueStore = create(
       lastSaved: null,
       dbError: null,
 
-      // --- Derived State Selectors ---
+      // Derived State Selectors
       selectedNpc: () => get().npcs.find((npc) => npc.id === get().selectedNpcId),
       selectedConversation: () => get().selectedNpc()?.conversations.find((conv) => conv.id === get().selectedConversationId),
       activeNodes: () => get().selectedConversation()?.nodes || DEFAULT_EMPTY_NODES,
@@ -164,13 +167,29 @@ export const useDialogueStore = create(
         return selected.length === 1 ? selected[0] : null;
       },
       getNodeTypes: () => {
-        return ['npc', 'user', 'custom'];
+        return ['npc', 'user', 'custom', 'jump']; // Added 'jump' type
       },
-      getNpcListForDropdown: () => { // New selector implementation
+      getNpcListForDropdown: () => {
         return get().npcs.map(npc => ({ value: npc.id, label: npc.name }));
       },
+      getAllConversationsForDropdown: () => {
+        const options: SelectOption[] = [];
+        const currentConversationId = get().selectedConversationId;
 
-      // --- Actions ---
+        get().npcs.forEach(npc => {
+          npc.conversations.forEach(conv => {
+            const isDisabled = conv.id === currentConversationId; // Prevent jumping to self
+            options.push({
+              value: `${npc.id}|${conv.id}`, // Combine IDs for easy parsing
+              label: `${npc.name} / ${conv.name}`,
+              disabled: isDisabled
+            });
+          });
+        });
+        return options;
+      },
+
+      // Actions
       loadInitialData: async () => {
         set({ isLoading: true, dbError: null });
         try {
@@ -178,25 +197,18 @@ export const useDialogueStore = create(
           const loadedNpcs = await loadAllNpcs();
           console.log(`[Store] Loaded ${loadedNpcs.length} NPCs.`);
 
+          // Data normalization and default value application
           loadedNpcs.forEach(npc => {
-            if (!npc.accentColor) {
-              npc.accentColor = DEFAULT_NPC_ACCENT_COLOR;
-            }
-            if (npc.isHorizontal === undefined) {
-              npc.isHorizontal = DEFAULT_NPC_LAYOUT_HORIZONTAL;
-            }
-            // Ensure conversations are always an array
-            if (!Array.isArray(npc.conversations)) {
-                npc.conversations = [];
-            }
-             // Ensure nodes and edges exist and have default values
+            if (!npc.accentColor) npc.accentColor = DEFAULT_NPC_ACCENT_COLOR;
+            if (npc.isHorizontal === undefined) npc.isHorizontal = DEFAULT_NPC_LAYOUT_HORIZONTAL;
+            if (!Array.isArray(npc.conversations)) npc.conversations = [];
             npc.conversations.forEach(conv => {
                 if (!conv.nodes) conv.nodes = [];
                 if (!conv.edges) conv.edges = [];
-                // Ensure npcId exists for NPC nodes (optional backfill - might need adjustment)
+                // Backfill missing npcId for older NPC nodes
                 conv.nodes.forEach(node => {
                     if (node.type === 'npc' && !node.data.npcId) {
-                        node.data.npcId = npc.id; // Assign the parent NPC ID if missing
+                        node.data.npcId = npc.id;
                         console.warn(`[Store Load] Backfilled missing npcId for node ${node.id} in NPC ${npc.id}`);
                     }
                 });
@@ -229,7 +241,7 @@ export const useDialogueStore = create(
             draft.selectedConversationId = initialConvId;
             draft.isLoading = false;
             draft.lastSaved = new Date();
-            draft.dbError = draft.dbError || null;
+            draft.dbError = draft.dbError || null; // Preserve potential sync error
           });
           console.log("[Store] Initial data loaded and state set.");
 
@@ -248,6 +260,7 @@ export const useDialogueStore = create(
 
       triggerSave: triggerSave,
 
+      // NPC Actions
       addNpc: (name) => {
         const newNpcId = IdManager.generateNpcId();
         const newConversationId = IdManager.generateConversationId();
@@ -280,7 +293,6 @@ export const useDialogueStore = create(
           if (npc) {
             set(draft => {
               draft.selectedNpcId = npcId;
-              // Select first conversation or null if none exist
               draft.selectedConversationId = npc.conversations[0]?.id || null;
             });
           }
@@ -301,9 +313,11 @@ export const useDialogueStore = create(
             const deletedNpc = draft.npcs.splice(npcIndex, 1)[0];
 
             if (deletedNpc.id === currentSelectedNpcId) {
+                // If deleted NPC was selected, select the first available NPC/Conv
                 nextSelectedNpcId = draft.npcs[0]?.id || null;
                 nextSelectedConvId = draft.npcs[0]?.conversations[0]?.id || null;
             } else {
+                // Otherwise, try to keep current selection, but validate it still exists
                 nextSelectedNpcId = currentSelectedNpcId;
                 nextSelectedConvId = currentSelectedConvId;
                  const currentNpcStillExists = draft.npcs.find(n => n.id === nextSelectedNpcId);
@@ -360,10 +374,10 @@ export const useDialogueStore = create(
             npc.isHorizontal = isHorizontal;
             console.log(`[Store] Updated layout direction for NPC ${npcId} to ${isHorizontal ? 'horizontal' : 'vertical'}`);
 
-            // Apply position updates only if the NPC is currently selected
+            // Update positions only for the CURRENTLY selected conversation's nodes
             if (npcId === draft.selectedNpcId) {
                 const conv = getCurrentConversation(draft);
-                if (conv?.nodes) {
+                if(conv?.nodes) {
                     conv.nodes.forEach((node) => {
                         node.sourcePosition = isHorizontal ? Position.Right : Position.Bottom;
                         node.targetPosition = isHorizontal ? Position.Left : Position.Top;
@@ -389,6 +403,7 @@ export const useDialogueStore = create(
         triggerSave();
       },
 
+      // Conversation Actions
       addConversation: (npcId, name) => {
         if (!npcId) return;
         const newConversationId = IdManager.generateConversationId();
@@ -405,7 +420,6 @@ export const useDialogueStore = create(
               ...createInitialConversationData(newName, isHorizontal),
             };
 
-            // Ensure conversations array exists
             if (!Array.isArray(npc.conversations)) {
                 npc.conversations = [];
             }
@@ -438,6 +452,7 @@ export const useDialogueStore = create(
             const npc = draft.npcs[npcIndex];
             if (npc.conversations.length <= 1) {
                 console.warn("Cannot delete the last conversation for an NPC.");
+                // Optionally provide user feedback here
                 return;
             }
 
@@ -446,6 +461,7 @@ export const useDialogueStore = create(
                 const deletedConvId = npc.conversations[convIndex].id;
                 npc.conversations.splice(convIndex, 1);
 
+                // If deleted conversation was selected, select the first remaining one
                 if (deletedConvId === draft.selectedConversationId) {
                     draft.selectedConversationId = npc.conversations[0]?.id || null;
                 }
@@ -463,6 +479,7 @@ export const useDialogueStore = create(
             const conv = getCurrentConversation(draft);
             if (conv) {
                 conv.name = finalName;
+                // Update the corresponding start node label
                 const startNode = conv.nodes?.find((node: DialogueNode) => node.type === 'input');
                 if (startNode) {
                     startNode.data.label = `Start: ${finalName}`;
@@ -489,13 +506,14 @@ export const useDialogueStore = create(
         triggerSave();
       },
 
-      // --- React Flow Actions ---
+      // React Flow Actions
       onNodesChange: (changes) => {
         set(draft => {
           const conv = getCurrentConversation(draft);
           if (conv) {
             if (!conv.nodes) conv.nodes = [];
 
+            // Prevent deletion of 'input' nodes
             const safeChanges = changes.filter(change => {
               if (change.type === 'remove') {
                 const nodeToRemove = conv.nodes.find(node => node.id === change.id);
@@ -525,15 +543,13 @@ export const useDialogueStore = create(
         set(draft => {
             const conv = getCurrentConversation(draft);
             if (!conv) return;
-
-            if (connection.source === connection.target) return;
-
+            if (connection.source === connection.target) return; // Prevent self-connections
             if (!conv.edges) conv.edges = [];
 
             if (connection.source && connection.target) {
                 const uniqueConnection = {
                     ...connection,
-                    id: `e-${connection.source}-${connection.target}-${Date.now()}`
+                    id: `e-${connection.source}-${connection.target}-${Date.now()}` // Basic unique ID
                 };
                 conv.edges = addEdge(uniqueConnection, conv.edges);
             } else {
@@ -573,7 +589,7 @@ export const useDialogueStore = create(
          set(draft => {
              const conv = getCurrentConversation(draft);
              if (conv?.nodes) {
-                 conv.nodes.forEach((node: Node) => {
+                 conv.nodes.forEach((node: Node) => { // Ensure type Node for position property
                      if (positions[node.id]) {
                          node.position = positions[node.id];
                      }
@@ -647,15 +663,19 @@ export const useDialogueStore = create(
             if (node) {
               const oldType = node.type;
               node.type = newType;
-              // If changing TO 'npc', set default npcId to current selected NPC in the sidebar
+              // Manage npcId when type changes
               if (newType === 'npc' && oldType !== 'npc') {
-                 node.data.npcId = draft.selectedNpcId ?? undefined; // Use selected NPC from sidebar or undefined
+                 node.data.npcId = draft.selectedNpcId ?? undefined;
                  console.log(`[Store] Set default npcId to ${node.data.npcId} for node ${nodeId}`);
-              }
-              // If changing FROM 'npc', clear npcId
-              else if (newType !== 'npc' && oldType === 'npc') {
+              } else if (newType !== 'npc' && oldType === 'npc') {
                  delete node.data.npcId;
                  console.log(`[Store] Cleared npcId for node ${nodeId}`);
+              }
+              // Clear jump target if changing type away from 'jump'
+              if (newType !== 'jump' && oldType === 'jump') {
+                  delete node.data.targetNpcId;
+                  delete node.data.targetConversationId;
+                  console.log(`[Store] Cleared jump target for node ${nodeId}`);
               }
               console.log(`[Store] Updated type for node ${nodeId} to "${newType}"`);
             } else {
@@ -677,7 +697,6 @@ export const useDialogueStore = create(
                 node.data.npcId = npcId;
                  console.log(`[Store] Updated npcId for node ${nodeId} to "${npcId}"`);
               } else {
-                // Handle setting to undefined/null if needed, e.g., for a "Select NPC" option
                 delete node.data.npcId;
                 console.log(`[Store] Cleared npcId for node ${nodeId}`);
               }
@@ -686,7 +705,57 @@ export const useDialogueStore = create(
             }
         });
         triggerSave();
-      }
+      },
+
+      updateNodeTargetConversation: (nodeId, targetNpcId, targetConversationId) => {
+        if (!nodeId) return;
+        set(draft => {
+          const conv = getCurrentConversation(draft);
+          const node = conv?.nodes?.find(
+            (n: DialogueNode) => n.id === nodeId && n.type === 'jump' // Only update if it's a jump node
+          );
+          if (node) {
+            if (targetNpcId && targetConversationId) {
+              node.data.targetNpcId = targetNpcId;
+              node.data.targetConversationId = targetConversationId;
+              console.log(`[Store] Updated jump target for node ${nodeId} to NPC: ${targetNpcId}, Conv: ${targetConversationId}`);
+            } else {
+              // Clear target if either ID is missing
+              delete node.data.targetNpcId;
+              delete node.data.targetConversationId;
+              console.log(`[Store] Cleared jump target for node ${nodeId}`);
+            }
+          } else {
+            console.warn(`[Store] Node ${nodeId} not found or is not a jump node, cannot update target conversation.`);
+          }
+        });
+        triggerSave();
+      },
+
+      jumpToConversation: (targetNpcId, targetConversationId) => {
+        if (!targetNpcId || !targetConversationId) {
+           console.warn('[Store] jumpToConversation called with missing IDs.');
+           return;
+        }
+        console.log(`[Store] Jumping to NPC: ${targetNpcId}, Conversation: ${targetConversationId}`);
+        const targetNpcExists = get().npcs.some(npc => npc.id === targetNpcId);
+        const targetConvExists = get().npcs.find(npc => npc.id === targetNpcId)?.conversations.some(conv => conv.id === targetConversationId);
+
+        if (targetNpcExists && targetConvExists) {
+          set(draft => {
+            draft.selectedNpcId = targetNpcId;
+            draft.selectedConversationId = targetConversationId;
+          });
+          // Don't trigger save, this is navigation
+        } else {
+          console.error(`[Store] Jump target not found! NPC: ${targetNpcId}, Conv: ${targetConversationId}`);
+          set(draft => {
+              draft.dbError = `Jump target dialogue (NPC: ${targetNpcId}, Conv: ${targetConversationId}) not found. It might have been deleted.`;
+          });
+          // Clear error after a delay
+          setTimeout(() => set(draft => { draft.dbError = null; }), 5000);
+        }
+      },
     };
   })
 );
@@ -699,9 +768,11 @@ export const useNodeInfoPanelData = () => useDialogueStore((state) => ({
     updateNodeData: state.updateNodeData,
     updateNodeText: state.updateNodeText,
     updateNodeType: state.updateNodeType,
-    updateNodeNpcId: state.updateNodeNpcId, // <-- Expose new action
+    updateNodeNpcId: state.updateNodeNpcId,
+    updateNodeTargetConversation: state.updateNodeTargetConversation, // Expose new action
     availableNodeTypes: state.getNodeTypes(),
-    npcOptions: state.getNpcListForDropdown(), // <-- Expose NPC list for dropdown
+    npcOptions: state.getNpcListForDropdown(),
+    allConversationsForDropdown: state.getAllConversationsForDropdown(), // Expose new selector
 }));
 
 export const useSidebarData = () => useDialogueStore((state) => ({
@@ -743,16 +814,15 @@ export const useSavingStatus = () => useDialogueStore((state) => ({
 }));
 
 
-// --- Add helper function to DialogueFlow node creation ---
-// This function will be called within DialogueFlow's onConnectEnd
+// Helper function to create new nodes (called from DialogueFlow onConnectEnd)
 export const createDialogueNode = (
-    type: 'user' | 'npc' | 'custom' | 'input',
+    type: 'user' | 'npc' | 'custom' | 'input' | 'jump', // Added 'jump' type
     labelPrefix: string,
     position: XYPosition,
     isHorizontal: boolean,
-    selectedNpcId: string | null // Pass current selected NPC ID from sidebar
+    selectedNpcId: string | null
 ): DialogueNode => {
-    const newNodeId = getNextNodeId(); // Use the existing function
+    const newNodeId = getNextNodeId();
     const newNode: DialogueNode = {
         id: newNodeId,
         type: type,
@@ -760,8 +830,9 @@ export const createDialogueNode = (
         data: {
             label: `${labelPrefix} ${newNodeId}`,
             text: '',
-            // --- Set npcId if creating an NPC node, using the sidebar's selected NPC ---
-            ...(type === 'npc' && selectedNpcId ? { npcId: selectedNpcId } : {})
+            // Set npcId only if creating an NPC node and an NPC is selected
+            ...(type === 'npc' && selectedNpcId ? { npcId: selectedNpcId } : {}),
+            // Jump nodes created via drag-connect start without a target
         },
         sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
         targetPosition: isHorizontal ? Position.Left : Position.Top,

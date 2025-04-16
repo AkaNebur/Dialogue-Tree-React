@@ -1,5 +1,6 @@
 /* File: src/styles/index.css */
 
+/* Global CSS Variables for Theming */
 :root {
     --color-bg: #1a1a1a;
     --color-surface: #2d2d2d;
@@ -7,38 +8,46 @@
     --color-text: #e0e0e0;
     --color-text-secondary: #9ca3af;
     --color-placeholder: #6b7280;
-    --color-panel: rgba(45, 45, 45, 0.85);
-    --color-accent-reactflow: #b0b0b0;
-    --color-accent: var(--color-accent-reactflow);
-    --color-valid: #22c55e;
-    --color-danger: #ef4444;
-    --color-text-contrast-light: #fff;
-    --color-text-contrast-dark: #1f2937;
+    --color-panel: rgba(45, 45, 45, 0.85); /* Panel background with slight transparency */
+    --color-accent-reactflow: #b0b0b0; /* Default accent for selections, edges */
+    --color-accent: var(--color-accent-reactflow); /* General accent fallback */
+    --color-valid: #22c55e; /* Green for valid connections */
+    --color-danger: #ef4444; /* Red for errors/danger actions */
+    --color-text-contrast-light: #fff; /* White text for dark backgrounds */
+    --color-text-contrast-dark: #1f2937; /* Dark gray text for light backgrounds */
+    --color-jump-node-border: #a855f7; /* Purple border for jump nodes */
+    --color-jump-node-bg: rgba(168, 85, 247, 0.2); /* Transparent purple background for jump nodes */
 
+    /* Dimensions & Spacing */
     --border-width-default: 1px;
     --border-width-selected: 2px;
     --ring-width: 2px;
     --ring-offset-width: 1px;
-    --ring-offset-color: var(--color-bg);
-    --handle-size: 0.75rem;
+    --ring-offset-color: var(--color-bg); /* Offset color for focus rings */
+    --handle-size: 0.75rem; /* Size of connection handles */
+    --node-min-width: 180px; /* Minimum width for generic nodes */
 
+    /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / .15);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .2), 0 2px 4px -2px rgb(0 0 0 / .2);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .25), 0 4px 6px -4px rgb(0 0 0 / .25);
-    --shadow-selected: 0 0 10px 2px rgba(255, 255, 255, 0.2);
+    --shadow-selected: 0 0 10px 2px rgba(255, 255, 255, 0.2); /* Glow effect for selected nodes */
 
-    --node-min-width: 180px;
-    --npc-accent-color: #374151;
-    --npc-contrast-color: var(--color-text-contrast-light);
+    /* Node Specific Variables */
+    --npc-accent-color: #374151; /* Default NPC accent (fallback) */
+    --npc-contrast-color: var(--color-text-contrast-light); /* Default NPC text color */
 
+    /* Transitions */
     --transition-duration: 200ms;
     --transition-duration-fast: 150ms;
     --transition-duration-slow: 300ms;
 
+    /* Scrollbar Styling */
     --scrollbar-track: color-mix(in srgb, var(--color-surface) 40%, transparent);
     --scrollbar-thumb: color-mix(in srgb, var(--color-accent-reactflow) 40%, transparent);
     --scrollbar-thumb-hover: color-mix(in srgb, var(--color-accent-reactflow) 60%, transparent);
 
+    /* React Flow Specific Variable Overrides (Optional, for fine-tuning) */
     --xy-edge-stroke-default: var(--color-border);
     --xy-edge-stroke-width-default: 1.5px;
     --xy-edge-stroke-selected-default: var(--color-accent-reactflow);
@@ -53,7 +62,7 @@
     --xy-node-border-default: var(--border-width-default) solid var(--color-border);
     --xy-node-background-color-default: var(--color-surface);
     --xy-node-boxshadow-hover-default: 0 1px 6px 1px rgba(0, 0, 0, 0.3);
-    --xy-node-boxshadow-selected-default: none;
+    --xy-node-boxshadow-selected-default: none; /* Use custom shadow */
     --xy-handle-size: var(--handle-size);
     --xy-handle-border-radius: 2px;
     --xy-handle-border-width: 1px;
@@ -73,94 +82,117 @@
     --xy-controls-box-shadow-default: var(--shadow-md);
 }
 
+/* Tailwind Base, Components, Utilities */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Component Styles */
 @layer components {
+    /* Base style for generic dialogue nodes */
     .dialogue-node {
-      @apply p-0 rounded-lg text-left whitespace-normal break-words overflow-hidden relative border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm transition-all !duration-200 min-w-[var(--node-min-width)];
+      @apply p-0 rounded-lg text-left whitespace-normal break-words overflow-hidden relative border bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm transition-all !duration-200 min-w-[var(--node-min-width)];
       border-width: var(--border-width-default);
+      border-color: var(--color-border);
     }
 
+    /* Base style for NPC and User nodes (Character Nodes) */
     .npc-node, .user-node {
         @apply p-0 rounded-lg text-left whitespace-normal break-words overflow-hidden relative border bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm transition-all !duration-200 min-w-[var(--node-min-width)] w-[250px] flex flex-col;
         border-width: var(--border-width-default);
         border-color: var(--color-border);
     }
 
+    /* Character Node Header Styling */
      .character-node-header {
-         @apply flex items-center p-2 border-b border-gray-700 bg-gray-700 text-white;
+         @apply flex items-center p-2 border-b border-gray-700 bg-gray-700 text-white; /* Default header style */
      }
-     
-     /* MODIFIED: Remove the solid background override to allow inline opacity styles */
+
+     /* NPC Node Header with Accent Color (applied via inline style for background-color) */
      .npc-node[data-has-accent-color='true'] .character-node-header {
-         /* background-color and border-color will be set by inline styles with opacity */
-         border-color: var(--npc-accent-color) !important;
-         color: var(--npc-contrast-color) !important;
+         border-color: var(--npc-accent-color) !important; /* Use NPC accent for border */
+         color: var(--npc-contrast-color) !important; /* Use calculated contrast text color */
      }
-     
-     /* NEW: Ensure the header background is transparent to allow inline rgba to work */
+     /* Ensure inline rgba background works */
      .npc-node[data-has-accent-color='true'] .character-node-header[style] {
-         background-color: transparent;
+         background-color: transparent; /* Allow inline style to provide the background */
      }
-     
+
+     /* Character Node Body & Icon */
      .character-node-body { @apply p-3 text-sm break-words text-gray-300; }
      .character-node-placeholder { @apply text-xs italic text-gray-500; }
      .character-node-icon {
          @apply flex-shrink-0 rounded-full w-8 h-8 flex justify-center items-center mr-2 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)];
      }
 
+    /* Custom Node Styling */
     .custom-node {
-      @apply dialogue-node;
+      @apply dialogue-node; /* Inherit base dialogue node styles */
     }
     .custom-node-content { @apply p-3; }
     .custom-node-title { @apply text-sm font-semibold text-[var(--color-text)]; }
     .custom-node-text { @apply text-xs text-gray-400 mt-1 break-words; }
 
+    /* Input Node Styling (Start Node) */
     .input-node-content {
       @apply p-3 border border-dashed rounded-md text-center text-sm font-medium w-full border-gray-500 bg-gray-500/20 text-gray-400;
       min-width: var(--node-min-width);
     }
 
-
-    .react-flow__node.selected > .custom-node,
-    .react-flow__node.selected > .npc-node,
-    .react-flow__node.selected > .user-node {
-       border-width: var(--border-width-selected) !important;
-       box-shadow: var(--shadow-selected) !important;
-       outline: none !important;
+    /* Jump Node Styling */
+    .jump-node {
+      @apply p-3 rounded-lg border-2 text-gray-200 shadow-md w-[250px] flex flex-col gap-2 transition-colors duration-200;
+      background-color: var(--color-jump-node-bg);
+      border-color: var(--color-jump-node-border);
+      border-width: var(--border-width-default);
     }
 
+    /* Selected State Styling for All Node Types */
+    .react-flow__node.selected > .custom-node,
+    .react-flow__node.selected > .npc-node,
+    .react-flow__node.selected > .user-node,
+    .react-flow__node.selected > .jump-node {
+       border-width: var(--border-width-selected) !important;
+       box-shadow: var(--shadow-selected) !important; /* Apply glow effect */
+       outline: none !important; /* Remove default outline */
+    }
+
+    /* Selected Border Color - Default Nodes */
     .react-flow__node.selected > .custom-node,
     .react-flow__node.selected > .user-node,
     .react-flow__node.selected > .npc-node:not([data-has-accent-color='true']) {
       border-color: var(--color-accent-reactflow) !important;
     }
 
+    /* Selected Border Color - NPC with Accent */
     .react-flow__node.selected > .npc-node[data-has-accent-color='true'] {
         border-color: var(--npc-accent-color) !important;
     }
 
+    /* Selected Border Color - Jump Node */
+    .react-flow__node.selected > .jump-node {
+        border-color: var(--color-jump-node-border) !important;
+    }
+
+    /* Selected State - Input Node (uses ring instead of border) */
     .react-flow__node-input.selected > .dialogue-node-input-wrapper > .input-node-content {
         @apply ring-2 ring-offset-1;
         --tw-ring-color: var(--color-accent-reactflow);
         --tw-ring-offset-color: var(--ring-offset-color);
         --tw-ring-offset-width: var(--ring-offset-width);
-        border-color: var(--color-accent-reactflow) !important;
+        border-color: var(--color-accent-reactflow) !important; /* Make border match ring */
     }
 
+    /* Hide unused handles on Character Nodes (NPC/User) */
+    /* These might become visible again if layout direction changes */
     .character-node .react-flow__handle[data-handlepos="left"] {
-        opacity: 0;
-  pointer-events: none;
+        opacity: 0; pointer-events: none;
     }
-
     .character-node .react-flow__handle[data-handlepos="top"] {
-        opacity: 0;
-  pointer-events: none;
+        opacity: 0; pointer-events: none;
     }
 
-
+    /* Handle Styling (Connection Points) */
     .react-flow__handle {
         width: var(--xy-handle-size) !important; height: var(--xy-handle-size) !important;
         border-radius: var(--xy-handle-border-radius) !important;
@@ -169,6 +201,7 @@
         min-width: unset !important; min-height: unset !important;
         transition: background-color var(--transition-duration-fast), border-color var(--transition-duration-fast);
     }
+    /* Adjust handle shape slightly for horizontal/vertical */
     .react-flow__handle.horizontal { width: calc(var(--xy-handle-size)/2) !important; height: calc(var(--xy-handle-size)*2.5) !important; }
     .react-flow__handle.vertical { width: calc(var(--xy-handle-size)*2.5) !important; height: calc(var(--xy-handle-size)/2) !important; }
     .react-flow__handle.connectable { @apply cursor-crosshair; }
@@ -176,6 +209,7 @@
     .react-flow__handle.connecting, .react-flow__handle.valid { background-color: var(--xy-handle-background-color-connecting-default) !important; border-color: var(--xy-handle-border-color-connecting-default) !important; }
 }
 
+/* React Flow UI Component Styling */
 .react-flow__controls {
     @apply rounded-lg overflow-hidden;
     background-color: var(--xy-controls-button-background-color-default);
@@ -201,23 +235,24 @@
     box-shadow: var(--shadow-lg);
 }
 .react-flow__minimap-node {
-    fill: var(--color-accent-reactflow);
+    fill: var(--color-accent-reactflow); /* Color of nodes in minimap */
     stroke: var(--color-border);
     stroke-width: 1;
-    rx: var(--xy-handle-border-radius);
+    rx: var(--xy-handle-border-radius); /* Slightly rounded corners */
 }
 .react-flow__minimap-node.selected { fill: var(--color-valid); stroke: var(--color-text-contrast-light); stroke-width: 2; }
 .react-flow__minimap-mask { fill: var(--color-bg); fill-rule: evenodd; opacity: .75; stroke: none; pointer-events: none;}
 
 .react-flow__attribution { @apply px-2 py-1 rounded text-xs; color: var(--color-text-secondary); background-color: var(--xy-attribution-background-color-default); }
 
-.react-flow__background { opacity: .3; }
+.react-flow__background { opacity: .3; } /* Make background pattern less prominent */
 
+/* Edge Styling */
 .react-flow__edge-path { stroke: var(--xy-edge-stroke-default); stroke-width: var(--xy-edge-stroke-width-default); }
 .react-flow__edge.selected .react-flow__edge-path,
 .react-flow__edge:focus .react-flow__edge-path,
 .react-flow__edge:hover .react-flow__edge-path { stroke: var(--xy-edge-stroke-selected-default); stroke-width: 2px; }
-.react-flow__edge.animated .react-flow__edge-path { stroke: var(--color-accent-reactflow); }
+.react-flow__edge.animated .react-flow__edge-path { stroke: var(--color-accent-reactflow); } /* Style for animated edges */
 .react-flow__connection-path { stroke: var(--xy-connectionline-stroke-default); stroke-width: var(--xy-connectionline-stroke-width-default); }
 .react-flow__arrowhead path { fill: var(--xy-edge-stroke-default); }
 .react-flow__edge.selected .react-flow__arrowhead path,
@@ -227,29 +262,70 @@
 
 .react-flow__selection { background-color: var(--xy-selection-background-color-default); border: var(--xy-selection-border-default); }
 
+/* Base HTML and Body Styles */
 html { background-color: var(--color-bg); color: var(--color-text); font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; box-sizing: border-box; height: 100%; }
 body, #root { height: 100%; margin: 0; padding: 0; }
 *, *:before, *:after { box-sizing: inherit; }
 
+/* Reset React Flow Input Node wrapper styles */
 .react-flow__node-input, .react-flow__node-input.selected { background: transparent !important; border: none !important; padding: 0 !important; border-radius: 0 !important; width: auto !important; min-width: unset !important; box-shadow: none !important; overflow: visible !important; text-align: left !important; font-size: inherit !important; color: inherit !important; }
 
+/* Custom Scrollbar Styling */
 .card-scrollbar::-webkit-scrollbar { width: 5px; }
 .card-scrollbar::-webkit-scrollbar-track { background-color: var(--scrollbar-track); border-radius: 8px; }
 .card-scrollbar::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb); border-radius: 8px; }
 .card-scrollbar::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
 .card-scrollbar { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
 
-.markdown-content { color: var(--color-text); }
-.markdown-content strong { font-weight: 600; }
-.markdown-content em { font-style: italic; }
-.markdown-content s { text-decoration: line-through; }
-.markdown-content code { @apply px-1 py-0.5 rounded text-xs font-mono; background-color: color-mix(in srgb, var(--color-border) 50%, transparent); }
-.markdown-content blockquote { @apply pl-2 py-1 my-1 italic border-l-4; border-color: var(--color-border); color: var(--color-text-secondary); }
-.markdown-content ul, .markdown-content ol { @apply ml-5 mb-2; }
-.markdown-content ul { list-style: disc; }
-.markdown-content ol { list-style: decimal; }
-.markdown-content hr { @apply my-2 border-t; border-color: var(--color-border); }
-.markdown-content h1, .markdown-content h2, .markdown-content h3 { @apply font-semibold mb-1; }
-.markdown-content h1 { @apply text-lg; }
-.markdown-content h2 { @apply text-base; }
-.markdown-content h3 { @apply text-sm; }
+/* Basic Markdown Content Styling (used by MarkdownRenderer) */
+/* Use Tailwind's @apply for prose styles if using the typography plugin, */
+/* otherwise define basic styles like this: */
+.prose {
+    color: var(--color-text);
+    line-height: 1.6;
+}
+.prose-invert { /* Assuming dark mode */
+    color: var(--color-text);
+}
+.prose :where(a):not(:where([class~="not-prose"] *)) { color: #60a5fa; text-decoration: underline; }
+.prose :where(strong):not(:where([class~="not-prose"] *)) { font-weight: 600; color: inherit; }
+.prose :where(em):not(:where([class~="not-prose"] *)) { font-style: italic; color: inherit;}
+.prose :where(code):not(:where([class~="not-prose"] *)) {
+    @apply px-1 py-0.5 rounded text-xs font-mono;
+    background-color: color-mix(in srgb, var(--color-border) 50%, transparent);
+    color: #f3f4f6; /* Light gray for code text */
+    font-weight: 500;
+    word-wrap: break-word;
+}
+.prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+    @apply pl-3 py-1 my-2 italic border-l-4;
+    border-color: var(--color-border);
+    color: var(--color-text-secondary);
+}
+.prose :where(ul):not(:where([class~="not-prose"] *)) { list-style: disc; @apply ml-5 my-2; }
+.prose :where(ol):not(:where([class~="not-prose"] *)) { list-style: decimal; @apply ml-5 my-2; }
+.prose :where(li):not(:where([class~="not-prose"] *)) { @apply my-0.5; }
+.prose :where(hr):not(:where([class~="not-prose"] *)) { @apply my-4 border-t; border-color: var(--color-border); }
+.prose :where(h1):not(:where([class~="not-prose"] *)) { @apply text-xl font-semibold mb-2; color: inherit; }
+.prose :where(h2):not(:where([class~="not-prose"] *)) { @apply text-lg font-semibold mb-2; color: inherit; }
+.prose :where(h3):not(:where([class~="not-prose"] *)) { @apply text-base font-semibold mb-1; color: inherit; }
+.prose :where(p):not(:where([class~="not-prose"] *)) { @apply my-2; }
+.prose :where(pre):not(:where([class~="not-prose"] *)) {
+    @apply p-3 my-2 rounded overflow-x-auto text-sm;
+    background-color: color-mix(in srgb, var(--color-border) 50%, transparent);
+    color: #f3f4f6;
+}
+.prose :where(pre code):not(:where([class~="not-prose"] *)) {
+    background-color: transparent;
+    padding: 0;
+    font-weight: inherit;
+    color: inherit;
+}
+.prose :where(table):not(:where([class~="not-prose"] *)) { @apply w-full my-4 text-sm; border-collapse: collapse; }
+.prose :where(thead):not(:where([class~="not-prose"] *)) { border-bottom: 2px solid var(--color-border); }
+.prose :where(th):not(:where([class~="not-prose"] *)) { @apply px-3 py-2 font-semibold text-left; color: inherit; }
+.prose :where(tbody tr):not(:where([class~="not-prose"] *)) { border-bottom: 1px solid var(--color-border); }
+.prose :where(td):not(:where([class~="not-prose"] *)) { @apply px-3 py-2 align-top; }
+
+/* Ensure max-w-none works correctly with prose */
+.max-w-none { max-width: none !important; }
