@@ -1,6 +1,5 @@
 // src/components/CardSidebar/index.tsx
-import React, { useState, ReactNode, CSSProperties } from 'react';
-// Map icon is used for the Changelog/Roadmap button
+import React, { useState, CSSProperties } from 'react';
 import { Plus, Settings, User, Info, Map, Edit, Database, X } from 'lucide-react';
 import { useSidebarData } from '../../store/dialogueStore';
 import { NPC, Conversation } from '../../types';
@@ -8,7 +7,7 @@ import Panel from '../ui/Panel';
 import Button from '../ui/Button';
 import IconButton from '../ui/IconButton';
 import Input from '../ui/Input';
-import { utilStyles, cardItemStyles } from '../../styles/commonStyles';
+import { cardItemStyles } from '../../styles/commonStyles';
 import { hexToRgba } from '../../utils/colorUtils';
 
 // Dnd Kit imports
@@ -24,7 +23,6 @@ import {
   DragOverlay,
   TouchSensor,
   DropAnimation, // <-- Import DropAnimation type
-  defaultDropAnimationSideEffects, // <-- Optional: Import default effects if needed later
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -36,7 +34,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 
-// --- Sortable NPC Item Component (No changes needed here) ---
+// --- Sortable NPC Item Component ---
 interface SortableNpcItemProps {
   npc: NPC;
   isSelected: boolean;
@@ -71,7 +69,6 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
 
   const style: CSSProperties = {
     transform: combinedTransform,
-    // Transition is handled correctly: disabled during drag, enabled otherwise
     transition: hookIsDragging ? 'none' : transition,
     opacity: hookIsDragging && !isOverlay ? 0 : 1,
     zIndex: showLiftedStyle ? 10 : 'auto',
@@ -86,32 +83,33 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
   const itemStyles: React.CSSProperties = { borderWidth: '1px', borderStyle: 'solid' };
   let bgClasses = '';
 
+  // Apply background and border based on selection, accent, and overlay status
   if (!isOverlay) {
     if (isSelected) {
       if (useAccentStyle) {
         itemStyles.borderColor = accentColor;
         itemStyles.backgroundColor = hexToRgba(accentColor, 0.2);
       } else {
-        itemStyles.borderColor = '#6B7280';
+        itemStyles.borderColor = '#6B7280'; // Tailwind gray-500
         bgClasses = "bg-gray-900/70";
       }
     } else {
-      itemStyles.borderColor = '#757980';
-      bgClasses = 'hover:border-gray-500';
+      itemStyles.borderColor = '#4b5563'; // Tailwind gray-600
+      bgClasses = 'hover:border-gray-500'; // Hover border gray-500
     }
-  } else {
-      if (isSelected) {
-           if (useAccentStyle) {
-               itemStyles.borderColor = accentColor;
-               itemStyles.backgroundColor = hexToRgba(accentColor, 0.2);
-           } else {
-               itemStyles.borderColor = '#6B7280';
-               itemStyles.backgroundColor = '#1f2937cc';
-           }
+  } else { // Style for the drag overlay item
+    if (isSelected) {
+      if (useAccentStyle) {
+        itemStyles.borderColor = accentColor;
+        itemStyles.backgroundColor = hexToRgba(accentColor, 0.2);
       } else {
-          itemStyles.borderColor = '#757980';
-          itemStyles.backgroundColor = '#111827';
+        itemStyles.borderColor = '#6B7280';
+        itemStyles.backgroundColor = '#1f2937cc'; // Tailwind gray-800 with opacity
       }
+    } else {
+      itemStyles.borderColor = '#4b5563';
+      itemStyles.backgroundColor = '#111827'; // Tailwind gray-900
+    }
   }
 
   const baseClasses = cardItemStyles.base;
@@ -121,40 +119,41 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
       ref={setNodeRef}
       style={{ ...style, ...itemStyles }}
       className={`${baseClasses} ${bgClasses} npc-list-item group`}
-      {...(isOverlay ? {} : attributes)}
+      {...(isOverlay ? {} : attributes)} // Apply DnD attributes only to the actual item
     >
+      {/* Button used for selection and drag handle */}
       <button
         onClick={() => !isOverlay && onSelect(npc.id)}
-        {...(isOverlay ? {} : listeners)}
+        {...(isOverlay ? {} : listeners)} // Apply DnD listeners only to the actual item's button
         className={`${cardItemStyles.text} pl-16 relative ${isOverlay ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`}
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'none' }} // Recommended for pointer/touch sensors
         title={isOverlay ? npc.name : (npc.name + " (Click to select, click and hold to drag)")}
-        disabled={isOverlay}
+        disabled={isOverlay} // Disable interaction on the overlay clone
       >
         {npc.name}
       </button>
 
-      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden bg-gray-700 border border-gray-700 flex items-center justify-center pointer-events-none">
+      {/* NPC Avatar/Icon */}
+      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden bg-gray-700 border border-gray-600 flex items-center justify-center pointer-events-none">
         {npc.image ? (
-          <img src={npc.image} alt={npc.name} className="w-full h-full object-cover relative z-10" />
+          <img src={npc.image} alt={npc.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center relative z-10">
-            <User size={20} className="text-gray-400" />
-          </div>
+          <User size={20} className="text-gray-400" />
         )}
       </div>
 
+      {/* Edit Button */}
       <div className={cardItemStyles.actions.container} style={{ opacity: isOverlay ? 0 : 1 }}>
         <button
           className={cardItemStyles.actions.button + ' ' + cardItemStyles.actions.edit}
           onClick={(e) => {
-            if (!isOverlay) {
-                e.stopPropagation();
+            if (!isOverlay) { // Prevent action on overlay
+                e.stopPropagation(); // Prevent triggering the parent button's onClick
                 onEdit(npc.id, npc.name, npc.image, npc.accentColor);
             }
           }}
           title="Edit NPC"
-          disabled={isOverlay}
+          disabled={isOverlay} // Disable on overlay
         >
           <Edit size={16} />
         </button>
@@ -164,7 +163,7 @@ const SortableNpcItem: React.FC<SortableNpcItemProps> = ({
 };
 
 
-// --- Sortable Dialogue Item Component (No changes needed here) ---
+// --- Sortable Dialogue Item Component ---
 interface SortableDialogueItemProps {
   conv: Conversation;
   isSelected: boolean;
@@ -201,7 +200,6 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
 
   const style: CSSProperties = {
     transform: combinedTransform,
-    // Transition is handled correctly: disabled during drag, enabled otherwise
     transition: hookIsDragging ? 'none' : transition,
     opacity: hookIsDragging && !isOverlay ? 0 : 1,
     zIndex: showLifted ? 10 : 'auto',
@@ -214,6 +212,7 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
   const itemStyles: CSSProperties = { borderWidth: 1, borderStyle: 'solid' };
   let bgClasses = '';
 
+  // Apply background and border based on selection, accent, and overlay status
   if (!isOverlay) {
     if (isSelected) {
       if (useAccent) {
@@ -224,10 +223,10 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
         bgClasses = 'bg-gray-900/70';
       }
     } else {
-      itemStyles.borderColor = '#757980';
+      itemStyles.borderColor = '#4b5563';
       bgClasses = 'hover:border-gray-500';
     }
-  } else {
+  } else { // Style for the drag overlay item
     if (isSelected) {
       if (useAccent) {
         itemStyles.borderColor = npcAccentColor;
@@ -237,7 +236,7 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
         itemStyles.backgroundColor = '#1f2937cc';
       }
     } else {
-      itemStyles.borderColor = '#757980';
+      itemStyles.borderColor = '#4b5563';
       itemStyles.backgroundColor = '#111827';
     }
   }
@@ -247,29 +246,32 @@ const SortableDialogueItem: React.FC<SortableDialogueItemProps> = ({
       ref={setNodeRef}
       style={{ ...style, ...itemStyles }}
       className={`${cardItemStyles.base} ${bgClasses} group`}
-      {...(isOverlay ? {} : attributes)}
+      {...(isOverlay ? {} : attributes)} // Apply DnD attributes only to the actual item
     >
+      {/* Button used for selection and drag handle */}
       <button
         onClick={() => !isOverlay && onSelect(conv.id)}
-        {...(isOverlay ? {} : listeners)}
+        {...(isOverlay ? {} : listeners)} // Apply DnD listeners only to the actual item's button
         className={`${cardItemStyles.text} pl-4 relative ${isOverlay ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`}
         style={{ touchAction: 'none' }}
         title={isOverlay ? conv.name : (conv.name + ' (Click to select, click and hold to drag)')}
-        disabled={isOverlay}
+        disabled={isOverlay} // Disable interaction on the overlay clone
       >
         {conv.name}
       </button>
+
+      {/* Edit Button */}
       <div className={cardItemStyles.actions.container} style={{ opacity: isOverlay ? 0 : 1 }}>
         <button
           className={cardItemStyles.actions.button + ' ' + cardItemStyles.actions.edit}
           onClick={e => {
-            if (!isOverlay) {
-              e.stopPropagation();
+            if (!isOverlay) { // Prevent action on overlay
+              e.stopPropagation(); // Prevent triggering the parent button's onClick
               onEdit(conv.id, conv.name);
             }
           }}
           title="Edit Dialogue"
-          disabled={isOverlay}
+          disabled={isOverlay} // Disable on overlay
         >
           <Edit size={16} />
         </button>
@@ -286,20 +288,14 @@ interface CardSidebarProps {
   onOpenEditModal: (type: 'NPC' | 'Dialogue', id: string, name: string, image?: string, accentColor?: string) => void;
   isDataManagementVisible?: boolean;
   onToggleDataManagement?: () => void;
-  headerButtons?: ReactNode;
-  betweenHeaderAndContent?: ReactNode;
+  betweenHeaderAndContent?: React.ReactNode; // For placing DataActions between header and panels
 }
 
-// --- MODIFICATION: Define custom drop animation configuration ---
+// Custom drop animation configuration for smoother drag release
 const customDropAnimation: DropAnimation = {
-  duration: 150, // milliseconds (adjust as needed, default is often 250ms)
-  easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)', // Example easing, adjust or remove for default
-  // sideEffects: defaultDropAnimationSideEffects({ // You usually don't need to override sideEffects unless doing advanced things
-  //   styles: { active: { opacity: '0.5' } }
-  // })
+  duration: 150,
+  easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
 };
-// --- END MODIFICATION ---
-
 
 const CardSidebar: React.FC<CardSidebarProps> = ({
   onOpenInfoModal,
@@ -307,7 +303,6 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
   onOpenEditModal,
   isDataManagementVisible = false,
   onToggleDataManagement,
-  headerButtons,
   betweenHeaderAndContent
 }) => {
   const {
@@ -327,23 +322,26 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
   const [newConversationName, setNewConversationName] = useState<string>('');
   const [isAddingNpc, setIsAddingNpc] = useState<boolean>(false);
   const [isAddingConversation, setIsAddingConversation] = useState<boolean>(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null); // Tracks the ID of the item being dragged
 
+  // Setup sensors for dnd-kit
   const sensors = useSensors(
-     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), // Mouse/Pen drag activation
+     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }), // Touch drag activation
+     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }) // Keyboard support
   );
 
+  // Find the active item data for the DragOverlay based on activeId
   const activeNpc = activeId?.startsWith('npc-') ? npcs.find(npc => npc.id === activeId) : null;
   const activeConv = activeId?.startsWith('conv-') ? selectedNpcData?.conversations.find(conv => conv.id === activeId) : null;
 
+  // Handlers for adding new NPCs and Conversations
   const handleAddNpc = (e: React.FormEvent) => {
     e.preventDefault();
     if (newNpcName.trim()) {
       addNpc(newNpcName.trim());
       setNewNpcName('');
-      setIsAddingNpc(false);
+      setIsAddingNpc(false); // Close the form after adding
     }
   };
 
@@ -352,10 +350,11 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
     if (newConversationName.trim() && selectedNpcId) {
       addConversation(selectedNpcId, newConversationName.trim());
       setNewConversationName('');
-      setIsAddingConversation(false);
+      setIsAddingConversation(false); // Close the form after adding
     }
   };
 
+  // Handlers to open the edit modal
   const handleEditNpc = (npcId: string, name: string, image?: string, accentColor?: string) => {
     onOpenEditModal('NPC', npcId, name, image, accentColor);
   };
@@ -364,40 +363,44 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
     onOpenEditModal('Dialogue', conversationId, name);
   };
 
+  // Renders placeholder text when lists are empty
   const emptyStateContent = (message: string) => (
-    <div className="text-gray-300 text-xs italic text-center py-3 px-2 bg-black/40 rounded-md border border-gray-600">
+    <div className="text-gray-400 text-xs italic text-center py-3 px-2 bg-black/40 rounded-md border border-gray-600">
       {message}
     </div>
   );
 
+   // dnd-kit drag event handlers
    const handleDragStart = (event: DragStartEvent) => {
      setActiveId(String(event.active.id));
    };
 
    const handleDragEnd = (event: DragEndEvent) => {
      const { active, over } = event;
-     setActiveId(null); // Reset activeId FIRST
+     setActiveId(null); // Reset active drag ID immediately
 
      if (!over || active.id === over.id) {
-       return;
+       return; // No movement occurred
      }
 
      const activeIdStr = String(active.id);
      const overIdStr = String(over.id);
 
+     // Check if we are reordering NPCs
      if (activeIdStr.startsWith('npc-') && overIdStr.startsWith('npc-')) {
        const oldIndex = npcs.findIndex((npc) => npc.id === activeIdStr);
        const newIndex = npcs.findIndex((npc) => npc.id === overIdStr);
        if (oldIndex !== -1 && newIndex !== -1) {
-         reorderNpcs(oldIndex, newIndex);
+         reorderNpcs(oldIndex, newIndex); // Call store action to reorder
        }
      }
+     // Check if we are reordering Conversations for the selected NPC
      else if (activeIdStr.startsWith('conv-') && overIdStr.startsWith('conv-') && selectedNpcData) {
        const conversations = selectedNpcData.conversations || [];
        const oldIndex = conversations.findIndex((conv) => conv.id === activeIdStr);
        const newIndex = conversations.findIndex((conv) => conv.id === overIdStr);
        if (oldIndex !== -1 && newIndex !== -1) {
-         reorderConversations(selectedNpcData.id, oldIndex, newIndex);
+         reorderConversations(selectedNpcData.id, oldIndex, newIndex); // Call store action
        }
      }
    };
@@ -409,10 +412,10 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
+        modifiers={[restrictToVerticalAxis, restrictToWindowEdges]} // Restrict dragging
     >
         <div className="flex flex-col gap-4">
-            {/* Header Buttons */}
+            {/* Header Buttons Row */}
             <div className="flex justify-start mb-4 px-1 w-64 gap-2 items-center">
                  <IconButton icon={<Settings size={18} />} label="Options (Not Implemented)" variant="original" disabled />
                  <IconButton icon={<Info size={18} />} onClick={onOpenInfoModal} label="Info & Shortcuts" variant="original" />
@@ -420,66 +423,141 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                  {onToggleDataManagement && (
                     <IconButton icon={isDataManagementVisible ? <X size={18} /> : <Database size={18} />} label={isDataManagementVisible ? 'Hide Data Management' : 'Show Data Management'} onClick={onToggleDataManagement} variant="original" />
                  )}
-                 {headerButtons}
+                 {/* headerButtons prop removed as it was unused */}
             </div>
 
-            {/* Optional content between header and panels */}
+            {/* Optional content area (used for DataActions) */}
             {betweenHeaderAndContent}
 
             {/* Content Panels */}
             <div className="flex flex-col gap-4">
                 {/* NPC Panel */}
-                <Panel title="NPCs" actions={<IconButton icon={<Plus size={20} />} onClick={() => setIsAddingNpc(!isAddingNpc)} label="Add NPC" variant="gray" />} variant="sidebar">
-                    {isAddingNpc && ( <form onSubmit={handleAddNpc} className="mb-3"> {/* ... form content ... */} </form> )}
+                <Panel
+                    title="NPCs"
+                    actions={<IconButton icon={<Plus size={20} />} onClick={() => setIsAddingNpc(true)} label="Add NPC" variant="gray" />}
+                    variant="sidebar"
+                >
+                    {isAddingNpc && (
+                        <form onSubmit={handleAddNpc} className="mb-3 flex flex-col gap-1.5">
+                            {/* Action Buttons */}
+                            <div className="flex justify-end items-center gap-1 mb-1">
+                                <Button type="submit" size="sm" variant="primary" className="px-2.5">Add</Button>
+                                <IconButton icon={<X size={16} />} onClick={() => setIsAddingNpc(false)} label="Cancel Add NPC" variant="ghost" className="p-1.5" />
+                            </div>
+                            {/* Input Field */}
+                            <Input
+                                value={newNpcName}
+                                onChange={(e) => setNewNpcName(e.target.value)}
+                                placeholder="New NPC name..."
+                                required
+                                autoFocus // Focus the input when it appears
+                                sizeVariant="sm" // Use smaller input size
+                            />
+                        </form>
+                    )}
                     <SortableContext items={npcs.map(npc => npc.id)} strategy={verticalListSortingStrategy}>
                         <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 card-scrollbar">
-                            {npcs.map((npc) => ( <SortableNpcItem key={npc.id} npc={npc} isSelected={npc.id === selectedNpcId} onSelect={selectNpc} onEdit={handleEditNpc} isDragging={activeId === npc.id} /> ))}
-                            {npcs.length === 0 && !isAddingNpc && emptyStateContent("No NPCs created yet. Click & hold items to reorder.")}
+                            {npcs.map((npc) => (
+                                <SortableNpcItem
+                                    key={npc.id}
+                                    npc={npc}
+                                    isSelected={npc.id === selectedNpcId}
+                                    onSelect={selectNpc}
+                                    onEdit={handleEditNpc}
+                                    isDragging={activeId === npc.id}
+                                />
+                            ))}
+                            {npcs.length === 0 && !isAddingNpc && emptyStateContent("No NPCs created yet. Click '+' to add one.")}
                         </div>
                     </SortableContext>
                 </Panel>
 
                 {/* Dialogue Panel */}
-                <Panel title="Dialogues" actions={ npcs.length > 0 && (<IconButton icon={<Plus size={20} />} onClick={() => setIsAddingConversation(!isAddingConversation)} disabled={!selectedNpcId} label={selectedNpcId ? "Add Dialogue" : "Select an NPC first"} variant="gray" />) } variant="sidebar">
+                <Panel
+                    title="Dialogues"
+                    actions={ npcs.length > 0 && (
+                        <IconButton
+                            icon={<Plus size={20} />}
+                            onClick={() => setIsAddingConversation(true)}
+                            disabled={!selectedNpcId}
+                            label={selectedNpcId ? "Add Dialogue" : "Select an NPC first"}
+                            variant="gray"
+                        />
+                    )}
+                    variant="sidebar"
+                >
                     {selectedNpcData ? (
-                        <>
-                            {isAddingConversation && ( <form onSubmit={handleAddConversation} className="mb-3"> {/* ... form content ... */} </form> )}
+                        <div className="flex flex-col h-full"> {/* Wrapper for flex layout */}
+                            {isAddingConversation && (
+                                <form onSubmit={handleAddConversation} className="mb-3 flex flex-col gap-1.5">
+                                    {/* Action Buttons */}
+                                    <div className="flex justify-end items-center gap-1 mb-1">
+                                        <Button type="submit" size="sm" variant="primary" className="px-2.5">Add</Button>
+                                        <IconButton icon={<X size={16} />} onClick={() => setIsAddingConversation(false)} label="Cancel Add Dialogue" variant="ghost" className="p-1.5" />
+                                    </div>
+                                    {/* Input Field */}
+                                    <Input
+                                        value={newConversationName}
+                                        onChange={(e) => setNewConversationName(e.target.value)}
+                                        placeholder="New dialogue name..."
+                                        required
+                                        autoFocus // Focus the input when it appears
+                                        sizeVariant="sm" // Use smaller input size
+                                    />
+                                </form>
+                            )}
                             <SortableContext items={(selectedNpcData.conversations || []).map(conv => conv.id)} strategy={verticalListSortingStrategy}>
-                                <div className="space-y-1.5 overflow-y-auto max-h-[260px] pr-1 card-scrollbar">
-                                    {(selectedNpcData.conversations || []).map((conv) => ( <SortableDialogueItem key={conv.id} conv={conv} isSelected={conv.id === selectedConversationId} npcAccentColor={selectedNpcData.accentColor} onSelect={selectConversation} onEdit={handleEditConversation} isDragging={activeId === conv.id} /> ))}
-                                    {(selectedNpcData.conversations || []).length === 0 && !isAddingConversation && emptyStateContent("No dialogues created yet. Click & hold items to reorder.")}
+                                {/* Scrollable container for the list */}
+                                <div className="space-y-1.5 overflow-y-auto max-h-[260px] pr-1 card-scrollbar flex-grow">
+                                    {(selectedNpcData.conversations || []).map((conv) => (
+                                        <SortableDialogueItem
+                                            key={conv.id}
+                                            conv={conv}
+                                            isSelected={conv.id === selectedConversationId}
+                                            npcAccentColor={selectedNpcData.accentColor}
+                                            onSelect={selectConversation}
+                                            onEdit={handleEditConversation}
+                                            isDragging={activeId === conv.id}
+                                        />
+                                    ))}
+                                    {(selectedNpcData.conversations || []).length === 0 && !isAddingConversation && emptyStateContent("No dialogues yet. Click '+' to add one.")}
                                 </div>
                             </SortableContext>
-                        </>
-                    ) : ( <div className="text-gray-300 text-xs italic text-center py-3 px-2 bg-black/40 rounded-md border border-gray-600"> {npcs.length > 0 ? 'Select an NPC to see dialogues' : 'Create an NPC first'} </div> )}
+                        </div>
+                    ) : (
+                        // Placeholder when no NPC is selected
+                        <div className={`text-gray-300 text-xs italic text-center py-3 px-2 bg-black/40 rounded-md border border-gray-600 ${isAddingConversation ? 'mt-12' : ''}`}>
+                            {npcs.length > 0 ? 'Select an NPC to see dialogues' : 'Create an NPC first'}
+                        </div>
+                    )}
                 </Panel>
             </div>
         </div>
 
-        {/* --- MODIFICATION: Use custom drop animation config --- */}
+        {/* Drag Overlay: Renders a clone of the dragged item */}
+        {/* Uses custom drop animation for a smoother feel */}
         <DragOverlay dropAnimation={customDropAnimation}>
-        {/* --- END MODIFICATION --- */}
             {activeId ? (
-                activeNpc ? (
+                activeNpc ? ( // Render NPC overlay if activeId matches an NPC
                     <SortableNpcItem
                         npc={activeNpc}
                         isSelected={activeNpc.id === selectedNpcId}
-                        onSelect={() => {}}
-                        onEdit={() => {}}
-                        isDragging={true}
-                        isOverlay={true}
+                        onSelect={() => {}} // No action on overlay
+                        onEdit={() => {}}   // No action on overlay
+                        isDragging={true}   // Indicate it's being dragged
+                        isOverlay={true}    // Mark as overlay for styling
                     />
-                ) : activeConv ? (
+                ) : activeConv ? ( // Render Dialogue overlay if activeId matches a Conversation
                     <SortableDialogueItem
                         conv={activeConv}
                         isSelected={activeConv.id === selectedConversationId}
                         npcAccentColor={selectedNpcData?.accentColor}
-                        onSelect={() => {}}
-                        onEdit={() => {}}
-                        isDragging={true}
-                        isOverlay={true}
+                        onSelect={() => {}} // No action on overlay
+                        onEdit={() => {}}   // No action on overlay
+                        isDragging={true}   // Indicate it's being dragged
+                        isOverlay={true}    // Mark as overlay for styling
                     />
-                ) : null
+                ) : null // Render nothing if activeId doesn't match NPC or Conv
             ) : null}
         </DragOverlay>
 
