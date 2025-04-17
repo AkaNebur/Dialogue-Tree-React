@@ -1,15 +1,11 @@
 // src/components/EditModal.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Camera, Trash2, Plus } from 'lucide-react';
-import { isColorLight, hexToRgba } from '../utils/colorUtils';
+import { hexToRgba } from '../utils/colorUtils';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import { formStyles, alertStyles } from '../styles/commonStyles';
-
-// --- Explicit Hex Colors for Text Contrast ---
-const CONTRAST_TEXT_DARK = '#FFFFFF'; // White text for dark backgrounds
-const CONTRAST_TEXT_LIGHT = '#1f2937';  // Dark gray text (Tailwind gray-800) for light backgrounds
 
 // --- Preset colors array ---
 const PRESET_COLORS = [
@@ -123,11 +119,6 @@ const EditModal: React.FC<EditModalProps> = ({
     }
   };
 
-  const openColorPicker = () => {
-    if (colorInputRef.current) {
-      colorInputRef.current.click();
-    }
-  };
 
   // Define modal footer with action buttons
   const modalFooter = (

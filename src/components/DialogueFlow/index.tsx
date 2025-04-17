@@ -6,7 +6,6 @@ import ReactFlow, {
   Controls,
   Background,
   useReactFlow,
-  Position,
   NodeTypes,
   OnConnectStart,
   OnConnectEnd,

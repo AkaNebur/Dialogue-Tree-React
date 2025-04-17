@@ -25,7 +25,6 @@ import {
   DropAnimation, // <-- Import DropAnimation type
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -442,7 +441,7 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                             {/* Action Buttons */}
                             <div className="flex justify-end items-center gap-1 mb-1">
                                 <Button type="submit" size="sm" variant="primary" className="px-2.5">Add</Button>
-                                <IconButton icon={<X size={16} />} onClick={() => setIsAddingNpc(false)} label="Cancel Add NPC" variant="ghost" className="p-1.5" />
+                                <IconButton icon={<X size={16} />} onClick={() => setIsAddingNpc(false)} label="Cancel Add NPC" variant="gray" className="p-1.5" />
                             </div>
                             {/* Input Field */}
                             <Input
@@ -493,7 +492,7 @@ const CardSidebar: React.FC<CardSidebarProps> = ({
                                     {/* Action Buttons */}
                                     <div className="flex justify-end items-center gap-1 mb-1">
                                         <Button type="submit" size="sm" variant="primary" className="px-2.5">Add</Button>
-                                        <IconButton icon={<X size={16} />} onClick={() => setIsAddingConversation(false)} label="Cancel Add Dialogue" variant="ghost" className="p-1.5" />
+                                        <IconButton icon={<X size={16} />} onClick={() => setIsAddingConversation(false)} label="Cancel Add Dialogue" variant="gray" className="p-1.5" />
                                     </div>
                                     {/* Input Field */}
                                     <Input
