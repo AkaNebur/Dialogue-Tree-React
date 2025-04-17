@@ -1,4 +1,5 @@
 // File: src/components/DialogueFlow/JumpNode.tsx
+// *** CREATED ***
 
 import React, { memo, useMemo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
@@ -46,12 +47,8 @@ const JumpNodeComponent: React.FC<JumpNodeProps> = ({
     }
   };
 
-  const nodeBaseClasses = `
-    jump-node
-    p-3 rounded-lg border-2 bg-purple-900/30 border-purple-600
-    text-gray-200 shadow-md w-[250px] flex flex-col gap-2
-    transition-colors duration-200
-  `;
+  // Use the .jump-node class defined in index.css
+  const nodeBaseClasses = `jump-node`;
 
   return (
     <div className={nodeBaseClasses}>
@@ -86,13 +83,14 @@ const JumpNodeComponent: React.FC<JumpNodeProps> = ({
 
       {/* Jump Button */}
       <Button
-        variant="secondary"
+        variant="secondary" // Using secondary style, could create a specific purple variant
         size="sm"
         onClick={handleJump}
         disabled={!targetInfo.found} // Disable if target isn't valid
         leftIcon={<ArrowRightCircle size={16} />}
         fullWidth
         title={targetInfo.found ? `Jump to ${targetInfo.npcName} - ${targetInfo.convName}` : "Select a valid target dialogue first"}
+        className="mt-2 bg-purple-800/50 hover:bg-purple-700/60 focus:ring-purple-500" // Custom purple styling
       >
         Go to Dialogue
       </Button>

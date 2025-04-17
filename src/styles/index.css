@@ -191,6 +191,12 @@
     .character-node .react-flow__handle[data-handlepos="top"] {
         opacity: 0; pointer-events: none;
     }
+    .jump-node .react-flow__handle[data-handlepos="left"] {
+        opacity: 0; pointer-events: none;
+    }
+    .jump-node .react-flow__handle[data-handlepos="top"] {
+        opacity: 0; pointer-events: none;
+    }
 
     /* Handle Styling (Connection Points) */
     .react-flow__handle {
