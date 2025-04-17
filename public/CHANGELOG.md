@@ -1,4 +1,15 @@
-## [2025-04-17] - Jump Node & UI Improvements
+# [2025-04-17] - Draggable UI & ESLint Improvements
+
+### ✨ Features
+
+*   **Draggable Toolbar Buttons:** Toolbar buttons are now draggable, making it easier to create new nodes by dragging and dropping directly onto the canvas.
+*   **Dialogue Node in Toolbar:** Added dialogue node to the toolbar for quick access and creation.
+
+### 🐛 Fixes
+
+*   **ESLint Warnings:** Fixed various warnings reported by ESLint to improve code quality and maintainability.
+
+## [2025-04-16] - Jump Node & UI Improvements
 
 ### ✨ Features
 
