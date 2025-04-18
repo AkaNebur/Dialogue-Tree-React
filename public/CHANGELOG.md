@@ -13,7 +13,7 @@
 
 ### ✨ Features
 
-*   **Jump Node Implementation:** Added Jump Node with target dialogue selection directly in the edit panel, allowing users to easily create connections between different conversations.
+*   **Jump Node Im plementation:** Added Jump Node with target dialogue selection directly in the edit panel, allowing users to easily create connections between different conversations.
 
 ### 🐛 Fixes
 
